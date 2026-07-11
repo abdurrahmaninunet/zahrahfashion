@@ -13,6 +13,11 @@ COPY . .
 # NEXT_PUBLIC_* must be present at build time (baked into the bundle).
 ARG NEXT_PUBLIC_GOOGLE_CLIENT_ID=""
 ENV NEXT_PUBLIC_GOOGLE_CLIENT_ID=$NEXT_PUBLIC_GOOGLE_CLIENT_ID
+# Next.js bakes the /api and /uploads rewrite destinations at BUILD time, so
+# API_URL must be the production API address here (Service Connect name), not
+# the dev default. Runtime serverApi also reads API_URL from the task def env.
+ARG API_URL="http://zahrah-api:4000"
+ENV API_URL=$API_URL
 RUN npm run -w @zahrah/storefront build
 
 FROM base AS runtime

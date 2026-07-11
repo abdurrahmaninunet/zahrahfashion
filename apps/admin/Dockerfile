@@ -10,6 +10,10 @@ COPY apps/storefront/package.json apps/storefront/
 COPY apps/admin/package.json apps/admin/
 RUN npm ci
 COPY . .
+# Next.js bakes the /api rewrite destination at BUILD time, so API_URL must be the
+# production API address here (Service Connect name), not the dev default.
+ARG API_URL="http://zahrah-api:4000"
+ENV API_URL=$API_URL
 RUN npm run -w @zahrah/admin build
 
 FROM base AS runtime
