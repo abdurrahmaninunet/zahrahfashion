@@ -16,6 +16,7 @@ jobs:
     permissions:
       contents: read
     strategy:
+      fail-fast: false        # build all three even if one fails, so errors are visible
       matrix:
         app: [api, storefront, admin]
     steps:
