@@ -1,0 +1,1488 @@
+// Zahrah Fashion — Admin platform schema
+// Sources: docs/admin BRD/SRS set v1.0 + Decision Register D1.
+// Conventions:
+//   - Money: integer kobo (never float) — Discounts Rule 8, Reports Rule 7.
+//   - Quantities: DECIMAL(12,2) — fractional yards (Inventory).
+//   - Ledgers/audit tables are append-only by convention (no update paths in code).
+//   - actor/creator ids are plain strings (User.id) to keep relation count sane;
+//     joins are resolved in the service layer where names are needed.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Settings & Roles (Settings_Roles_BRD_SRS)
+// Setting definitions are code-seeded (FR-SET-01); values + history are data.
+// ─────────────────────────────────────────────────────────────────────────────
+
+model SettingValue {
+  key       String   @id
+  value     Json
+  updatedBy String? @map("updated_by")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("settings_values")
+}
+
+model SettingHistory {
+  id        String   @id @default(cuid())
+  key       String
+  oldValue  Json? @map("old_value")
+  newValue  Json @map("new_value")
+  actorId   String @map("actor_id")
+  reason    String?
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@index([key, createdAt])
+  @@map("settings_history")
+}
+
+enum ZoneStatus {
+  active
+  archived
+}
+
+model Zone {
+  id          String     @id @default(cuid())
+  name        String
+  areasText   String     @default("") @map("areas_text")
+  deliveryFee Int @map("delivery_fee") // kobo
+  podAllowed  Boolean    @default(false) @map("pod_allowed")
+  podMaxValue Int? @map("pod_max_value") // kobo
+  sortOrder   Int        @default(0) @map("sort_order")
+  status      ZoneStatus @default(active)
+  createdAt   DateTime   @default(now()) @map("created_at")
+  updatedAt   DateTime   @updatedAt @map("updated_at")
+
+  orders    Order[]
+  addresses CustomerAddress[]
+
+  @@map("zones")
+}
+
+/// Physical shop locations — listed on the storefront "Shops" page (planned).
+model StoreLocation {
+  id        String   @id @default(cuid())
+  name      String
+  phone     String?
+  email     String?
+  whatsapp  String?
+  address   String?
+  opensAt   String?  @map("opens_at") // e.g. "09:00"
+  closesAt  String?  @map("closes_at") // e.g. "18:00"
+  sortOrder Int      @default(0) @map("sort_order")
+  status    String   @default("active") // active | archived
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("store_locations")
+}
+
+enum UserStatus {
+  invited
+  active
+  deactivated
+}
+
+model Role {
+  key          String  @id
+  name         String
+  isSystem     Boolean @default(true) @map("is_system")
+  capabilities Json // string[]
+  users        User[]
+
+  @@map("roles")
+}
+
+model User {
+  id                String     @id @default(cuid())
+  name              String
+  email             String     @unique
+  phone             String?
+  roleKey           String @map("role_key")
+  role              Role       @relation(fields: [roleKey], references: [key])
+  status            UserStatus @default(invited)
+  passwordHash      String? @map("password_hash")
+  mustChangePassword Boolean   @default(false) @map("must_change_password")
+  totpSecret        String? @map("totp_secret")
+  totpEnabled       Boolean    @default(false) @map("totp_enabled")
+  recoveryCodes     Json? @map("recovery_codes") // string[] of hashes
+  lastLoginAt       DateTime? @map("last_login_at")
+  failedAttempts    Int        @default(0) @map("failed_attempts")
+  lockedUntil       DateTime? @map("locked_until")
+  createdAt         DateTime   @default(now()) @map("created_at")
+  updatedAt         DateTime   @updatedAt @map("updated_at")
+
+  sessions  Session[]
+  overrides UserPermissionOverride[]
+
+  @@map("users")
+}
+
+enum OverrideMode {
+  grant
+  revoke
+}
+
+model UserPermissionOverride {
+  id         String       @id @default(cuid())
+  userId     String @map("user_id")
+  user       User         @relation(fields: [userId], references: [id])
+  capability String
+  mode       OverrideMode
+  note       String?
+  expiresAt  DateTime? @map("expires_at")
+  createdBy  String @map("created_by")
+  createdAt  DateTime     @default(now()) @map("created_at")
+
+  @@index([userId])
+  @@map("user_permission_overrides")
+}
+
+model Session {
+  id                String    @id @default(cuid())
+  userId            String @map("user_id")
+  user              User      @relation(fields: [userId], references: [id])
+  createdAt         DateTime  @default(now()) @map("created_at")
+  lastSeenAt        DateTime  @default(now()) @map("last_seen_at")
+  idleExpiresAt     DateTime @map("idle_expires_at")
+  absoluteExpiresAt DateTime @map("absolute_expires_at")
+  ip                String?
+  userAgent         String? @map("user_agent")
+  stepUpUntil       DateTime? @map("step_up_until") // FR-SET-05 sensitive-write re-confirmation window
+  revokedAt         DateTime? @map("revoked_at")
+
+  @@index([userId])
+  @@map("sessions")
+}
+
+model Invite {
+  id        String    @id @default(cuid())
+  email     String
+  name      String
+  phone     String?
+  roleKey   String @map("role_key")
+  tokenHash String    @unique @map("token_hash")
+  expiresAt DateTime @map("expires_at")
+  usedAt    DateTime? @map("used_at")
+  createdBy String @map("created_by")
+  createdAt DateTime  @default(now()) @map("created_at")
+
+  @@index([email])
+  @@map("invites")
+}
+
+model AccountEvent {
+  id        String   @id @default(cuid())
+  userId    String? @map("user_id")
+  type      String // login|login_failed|lockout|2fa_*|password_*|invited|activated|deactivated|role_changed|override_*
+  detail    Json?
+  actorId   String? @map("actor_id")
+  ip        String?
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@index([userId, createdAt])
+  @@index([type, createdAt])
+  @@map("account_events")
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Product Management (Product_Management_BRD_SRS)
+// ─────────────────────────────────────────────────────────────────────────────
+
+enum EntityStatus {
+  active
+  archived
+}
+
+model Unit {
+  id                String       @id @default(cuid())
+  name              String
+  abbreviation      String
+  measurementType   String @map("measurement_type") // length|volume|weight|count
+  fractionalAllowed Boolean      @default(false) @map("fractional_allowed")
+  status            EntityStatus @default(active)
+
+  @@map("units")
+}
+
+model Category {
+  id                String       @id @default(cuid())
+  name              String
+  slug              String       @unique
+  parentId          String? @map("parent_id")
+  parent            Category?    @relation("CategoryTree", fields: [parentId], references: [id])
+  children          Category[]   @relation("CategoryTree")
+  image             String?
+  sortOrder         Int          @default(0) @map("sort_order")
+  defaultUnitId     String? @map("default_unit_id")
+  fractionalAllowed Boolean      @default(false) @map("fractional_allowed")
+  minOrderQty       Decimal      @default(1) @db.Decimal(12, 2) @map("min_order_qty")
+  qtyIncrement      Decimal      @default(1) @db.Decimal(12, 2) @map("qty_increment")
+  mediaRules        Json? @map("media_rules") // {minImages, maxImages}
+  returnEligible    Boolean      @default(true) @map("return_eligible") // D-09 category-level return flag
+  perishable        Boolean      @default(false)
+  deadStockDays     Int? @map("dead_stock_days") // D-37 per-category override
+  status            EntityStatus @default(active)
+  createdAt         DateTime     @default(now()) @map("created_at")
+  updatedAt         DateTime     @updatedAt @map("updated_at")
+
+  attributes CategoryAttribute[]
+  products   Product[]
+
+  @@map("categories")
+}
+
+model Attribute {
+  id                String       @id @default(cuid())
+  name              String
+  code              String       @unique
+  inputType         String @map("input_type") // text|number|select|multiselect|boolean|color
+  unitId            String? @map("unit_id")
+  isRequiredDefault Boolean      @default(false) @map("is_required_default")
+  isFilterable      Boolean      @default(false) @map("is_filterable")
+  isVariantDefining Boolean      @default(false) @map("is_variant_defining")
+  status            EntityStatus @default(active)
+
+  options    AttributeOption[]
+  categories CategoryAttribute[]
+
+  @@map("attributes")
+}
+
+model AttributeOption {
+  id          String       @id @default(cuid())
+  attributeId String @map("attribute_id")
+  attribute   Attribute    @relation(fields: [attributeId], references: [id])
+  label       String
+  value       String
+  hexCode     String? @map("hex_code")
+  image       String?
+  sortOrder   Int          @default(0) @map("sort_order")
+  status      EntityStatus @default(active)
+
+  @@index([attributeId])
+  @@map("attribute_options")
+}
+
+model CategoryAttribute {
+  categoryId  String @map("category_id")
+  category    Category  @relation(fields: [categoryId], references: [id])
+  attributeId String @map("attribute_id")
+  attribute   Attribute @relation(fields: [attributeId], references: [id])
+  isRequired  Boolean   @default(false) @map("is_required")
+  sortOrder   Int       @default(0) @map("sort_order")
+
+  @@id([categoryId, attributeId])
+  @@map("category_attributes")
+}
+
+enum ProductType {
+  standard
+  bundle
+  configurable_bundle
+}
+
+enum ProductStatus {
+  draft
+  active
+  archived
+}
+
+model Product {
+  id               String        @id @default(cuid())
+  categoryId       String @map("category_id")
+  category         Category      @relation(fields: [categoryId], references: [id])
+  name             String
+  slug             String        @unique
+  brand            String?
+  description      String?
+  tags             String[]      @default([])
+  type             ProductType   @default(standard)
+  status           ProductStatus @default(draft)
+  visibility       String        @default("visible") // visible|hidden
+  taxable          Boolean       @default(true)
+  requiresShipping Boolean       @default(true) @map("requires_shipping")
+  sellUnitId       String? @map("sell_unit_id")
+  minOrderQty      Decimal?      @db.Decimal(12, 2) @map("min_order_qty")
+  qtyIncrement     Decimal?      @db.Decimal(12, 2) @map("qty_increment")
+  attributeValues  Json          @default("{}") @map("attribute_values")
+  flags            Json?
+  createdBy        String? @map("created_by")
+  createdAt        DateTime      @default(now()) @map("created_at")
+  updatedAt        DateTime      @updatedAt @map("updated_at")
+
+  variants         Variant[]
+  media            ProductMedia[]
+  bundleConfig     BundleConfig?
+  bundleComponents BundleComponent[] @relation("BundleProduct")
+  bundleSlots      BundleSlot[]
+
+  @@index([categoryId, status])
+  @@map("products")
+}
+
+model Variant {
+  id             String       @id @default(cuid())
+  name           String? // staff-editable display label (falls back to option values)
+  productId      String @map("product_id")
+  product        Product      @relation(fields: [productId], references: [id])
+  sku            String       @unique
+  barcode        String?
+  optionValues   Json         @default("{}") @map("option_values")
+  price          Int // kobo
+  compareAtPrice Int? @map("compare_at_price") // kobo
+  costPrice      Int? @map("cost_price") // kobo, last-cost (D-03)
+  weight         Decimal?     @db.Decimal(10, 3)
+  dimensions     Json?
+  status         EntityStatus @default(active)
+  createdAt      DateTime     @default(now()) @map("created_at")
+  updatedAt      DateTime     @updatedAt @map("updated_at")
+
+  stockLevels      StockLevel[]
+  movements        StockMovement[]
+  bundleComponents BundleComponent[]
+  orderLines       OrderLine[]
+
+  @@index([productId])
+  @@map("variants")
+}
+
+model ProductMedia {
+  id        String  @id @default(cuid())
+  productId String @map("product_id")
+  product   Product @relation(fields: [productId], references: [id])
+  variantId String? @map("variant_id")
+  type      String  @default("image")
+  url       String
+  altText   String? @map("alt_text")
+  sortOrder Int     @default(0) @map("sort_order")
+
+  @@index([productId])
+  @@map("product_media")
+}
+
+model CatalogAuditLog {
+  id         String   @id @default(cuid())
+  entityType String @map("entity_type") // category|attribute|unit|product|variant
+  entityId   String @map("entity_id")
+  action     String // create|update|archive|restore|delete
+  changes    Json? // {before, after}
+  userId     String @map("user_id")
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  @@index([entityType, entityId, createdAt])
+  @@map("catalog_audit_log")
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Packages & Bundles (Addendum A1)
+// ─────────────────────────────────────────────────────────────────────────────
+
+model BundleComponent {
+  id              String  @id @default(cuid())
+  bundleProductId String @map("bundle_product_id")
+  bundleProduct   Product @relation("BundleProduct", fields: [bundleProductId], references: [id])
+  variantId       String @map("variant_id")
+  variant         Variant @relation(fields: [variantId], references: [id])
+  quantity        Decimal @db.Decimal(12, 2)
+  sortOrder       Int     @default(0) @map("sort_order")
+
+  @@index([bundleProductId])
+  @@index([variantId])
+  @@map("bundle_components")
+}
+
+model BundleConfig {
+  bundleProductId       String    @id @map("bundle_product_id")
+  product               Product   @relation(fields: [bundleProductId], references: [id])
+  pricingMode           String    @default("fixed") @map("pricing_mode") // fixed|percent_off_sum
+  fixedPrice            Int? @map("fixed_price") // kobo
+  percentOff            Decimal?  @db.Decimal(5, 2) @map("percent_off")
+  allowBelowCost        Boolean   @default(false) @map("allow_below_cost")
+  eligibleForPromotions Boolean   @default(false) @map("eligible_for_promotions") // D-58
+  maxSellable           Int? @map("max_sellable")
+  soldCount             Int       @default(0) @map("sold_count")
+  activeFrom            DateTime? @map("active_from")
+  activeUntil           DateTime? @map("active_until")
+  returnMode            String    @default("whole_only") @map("return_mode") // D-57
+
+  @@map("bundle_config")
+}
+
+model BundleSlot {
+  id              String  @id @default(cuid())
+  bundleProductId String @map("bundle_product_id")
+  product         Product @relation(fields: [bundleProductId], references: [id])
+  label           String
+  pickQuantity    Int @map("pick_quantity")
+  eligibility     Json // {categories[], tags[], variant_ids[]}
+  priceWeight     Decimal? @db.Decimal(5, 2) @map("price_weight")
+  sortOrder       Int     @default(0) @map("sort_order")
+
+  @@index([bundleProductId])
+  @@map("bundle_slots")
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Inventory (Inventory_Management_BRD_SRS)
+// ─────────────────────────────────────────────────────────────────────────────
+
+model Location {
+  id     String       @id @default(cuid())
+  name   String
+  type   String       @default("store") // store|warehouse
+  status EntityStatus @default(active)
+
+  @@map("locations")
+}
+
+model StockLevel {
+  variantId         String @map("variant_id")
+  variant           Variant  @relation(fields: [variantId], references: [id])
+  locationId        String @map("location_id")
+  onHand            Decimal  @default(0) @db.Decimal(12, 2) @map("on_hand")
+  reserved          Decimal  @default(0) @db.Decimal(12, 2)
+  lowStockThreshold Decimal? @db.Decimal(12, 2) @map("low_stock_threshold")
+  allowBackorder    Boolean  @default(false) @map("allow_backorder")
+  backorderCap      Decimal? @db.Decimal(12, 2) @map("backorder_cap")
+  updatedAt         DateTime @updatedAt @map("updated_at")
+
+  @@id([variantId, locationId])
+  @@map("stock_levels")
+}
+
+enum MovementType {
+  RECEIPT
+  RESERVE
+  RELEASE
+  DEDUCT
+  RETURN_RESTOCK
+  ADJUST_RECOUNT
+  ADJUST_DAMAGE
+  ADJUST_THEFT
+  ADJUST_CORRECTION
+  WRITE_OFF
+  STOCKTAKE_VARIANCE
+}
+
+model StockMovement {
+  id            String       @id @default(cuid())
+  variantId     String @map("variant_id")
+  variant       Variant      @relation(fields: [variantId], references: [id])
+  locationId    String @map("location_id")
+  type          MovementType
+  quantity      Decimal      @db.Decimal(12, 2) // signed
+  unitCost      Int? @map("unit_cost") // kobo
+  reasonCode    String? @map("reason_code")
+  note          String?
+  referenceType String? @map("reference_type") // order|shipment|return|receipt|stocktake
+  referenceId   String? @map("reference_id")
+  batchId       String? @map("batch_id")
+  userId        String? @map("user_id")
+  createdAt     DateTime     @default(now()) @map("created_at")
+
+  @@index([variantId, createdAt])
+  @@index([referenceType, referenceId])
+  @@index([type, createdAt])
+  @@map("stock_movements")
+}
+
+model Receipt {
+  id         String        @id @default(cuid())
+  locationId String @map("location_id")
+  supplierId String? @map("supplier_id")
+  note       String?
+  status     String        @default("draft") // draft|posted
+  createdBy  String @map("created_by")
+  createdAt  DateTime      @default(now()) @map("created_at")
+  postedAt   DateTime? @map("posted_at")
+  lines      ReceiptLine[]
+
+  @@map("receipts")
+}
+
+model ReceiptLine {
+  id        String  @id @default(cuid())
+  receiptId String @map("receipt_id")
+  receipt   Receipt @relation(fields: [receiptId], references: [id])
+  variantId String @map("variant_id")
+  quantity  Decimal @db.Decimal(12, 2)
+  unitCost  Int? @map("unit_cost") // kobo
+  batchId   String? @map("batch_id")
+
+  @@index([receiptId])
+  @@map("receipt_lines")
+}
+
+model Stocktake {
+  id              String          @id @default(cuid())
+  locationId      String @map("location_id")
+  scopeCategoryId String? @map("scope_category_id") // NULL = all
+  blind           Boolean         @default(false)
+  status          String          @default("draft") // draft|counting|review|approved|cancelled
+  createdBy       String @map("created_by")
+  approvedBy      String? @map("approved_by")
+  createdAt       DateTime        @default(now()) @map("created_at")
+  approvedAt      DateTime? @map("approved_at")
+  lines           StocktakeLine[]
+
+  @@map("stocktakes")
+}
+
+model StocktakeLine {
+  id           String    @id @default(cuid())
+  stocktakeId  String @map("stocktake_id")
+  stocktake    Stocktake @relation(fields: [stocktakeId], references: [id])
+  variantId    String @map("variant_id")
+  systemQty    Decimal   @db.Decimal(12, 2) @map("system_qty")
+  countedQty   Decimal?  @db.Decimal(12, 2) @map("counted_qty")
+  variance     Decimal?  @db.Decimal(12, 2)
+  varianceCost Int? @map("variance_cost") // kobo
+
+  @@index([stocktakeId])
+  @@map("stocktake_lines")
+}
+
+model Supplier {
+  id      String       @id @default(cuid())
+  name    String
+  phone   String?
+  email   String?
+  address String?
+  notes   String?
+  status  EntityStatus @default(active)
+
+  @@map("suppliers")
+}
+
+model StockAlert {
+  id         String    @id @default(cuid())
+  variantId  String? @map("variant_id") // NULL for bundle alerts keyed by product
+  productId  String? @map("product_id") // bundle low-stock (A1 FR-BAV-04)
+  locationId String? @map("location_id")
+  type       String // low_stock|out_of_stock|expiry|bundle_low
+  detail     Json?
+  status     String    @default("active") // active|resolved
+  createdAt  DateTime  @default(now()) @map("created_at")
+  resolvedAt DateTime? @map("resolved_at")
+
+  @@index([status, type])
+  @@map("stock_alerts")
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Orders (Order_Management_BRD_SRS)
+// ─────────────────────────────────────────────────────────────────────────────
+
+enum OrderStatus {
+  DRAFT
+  PENDING_PAYMENT
+  CONFIRMED
+  PROCESSING
+  PARTIALLY_SHIPPED
+  SHIPPED
+  DELIVERED
+  COMPLETED
+  CANCELLED
+  REFUNDED
+  DELIVERY_FAILED
+}
+
+enum PaymentStatus {
+  UNPAID
+  PARTIALLY_PAID
+  PAID
+  REFUND_PENDING
+  PARTIALLY_REFUNDED
+  REFUNDED
+}
+
+enum OrderChannel {
+  web
+  whatsapp
+  instagram
+  phone
+  in_store
+}
+
+model Order {
+  id                 String        @id @default(cuid())
+  orderNumber        String        @unique @map("order_number") // ORD-{YYMM}-{random5} (D-10)
+  channel            OrderChannel
+  customerId         String? @map("customer_id")
+  customer           Customer?     @relation(fields: [customerId], references: [id])
+  status             OrderStatus   @default(DRAFT)
+  paymentStatus      PaymentStatus @default(UNPAID) @map("payment_status")
+  deliveryMethod     String? @map("delivery_method") // rider|3pl|pickup
+  deliveryZoneId     String? @map("delivery_zone_id")
+  deliveryZone       Zone?         @relation(fields: [deliveryZoneId], references: [id])
+  address            Json? // snapshot {label, line, area, city, zoneName}
+  paymentMethod      String? @map("payment_method") // gateway|transfer|pod
+  subtotal           Int           @default(0) // kobo
+  discountTotal      Int           @default(0) @map("discount_total")
+  shippingFee        Int           @default(0) @map("shipping_fee")
+  taxTotal           Int           @default(0) @map("tax_total")
+  grandTotal         Int           @default(0) @map("grand_total")
+  currency           String        @default("NGN")
+  promoBreakdown     Json? @map("promo_breakdown") // applied promotion snapshot
+  placedAt           DateTime? @map("placed_at")
+  confirmedAt        DateTime? @map("confirmed_at")
+  shippedAt          DateTime? @map("shipped_at")
+  deliveredAt        DateTime? @map("delivered_at")
+  completedAt        DateTime? @map("completed_at")
+  cancellationReason String? @map("cancellation_reason")
+  flags              Json?
+  createdBy          String? @map("created_by") // staff user for manual orders
+  createdAt          DateTime      @default(now()) @map("created_at")
+  updatedAt          DateTime      @updatedAt @map("updated_at")
+
+  lines     OrderLine[]
+  payments  Payment[]
+  shipments Shipment[]
+  refunds   Refund[]
+  returns   Return[]
+  events    OrderEvent[]
+  notes     OrderNote[]
+
+  @@index([status, createdAt])
+  @@index([paymentStatus])
+  @@index([customerId])
+  @@index([channel, createdAt])
+  @@map("orders")
+}
+
+model OrderLine {
+  id                       String   @id @default(cuid())
+  orderId                  String @map("order_id")
+  order                    Order    @relation(fields: [orderId], references: [id])
+  variantId                String? @map("variant_id")
+  variant                  Variant? @relation(fields: [variantId], references: [id])
+  lineKind                 String   @default("standard") @map("line_kind") // standard|bundle (A1)
+  productNameSnapshot      String @map("product_name_snapshot")
+  skuSnapshot              String @map("sku_snapshot")
+  unitSnapshot             String   @default("piece") @map("unit_snapshot")
+  unitPriceSnapshot        Int @map("unit_price_snapshot") // kobo
+  quantity                 Decimal  @db.Decimal(12, 2)
+  lineTotal                Int @map("line_total") // kobo, after line discounts
+  discountAmount           Int      @default(0) @map("discount_amount")
+  costSnapshot             Int? @map("cost_snapshot") // kobo per unit at sale
+  categoryPathSnapshot     String? @map("category_path_snapshot")
+  bundleComponentsSnapshot Json? @map("bundle_components_snapshot") // A1: [{variantId, sku, name, qty, unit, unitCost}]
+  qtyShipped               Decimal  @default(0) @db.Decimal(12, 2) @map("qty_shipped")
+  qtyReturned              Decimal  @default(0) @db.Decimal(12, 2) @map("qty_returned")
+  qtyRefunded              Decimal  @default(0) @db.Decimal(12, 2) @map("qty_refunded")
+
+  @@index([orderId])
+  @@index([variantId])
+  @@map("order_lines")
+}
+
+model Payment {
+  id         String   @id @default(cuid())
+  orderId    String @map("order_id")
+  order      Order    @relation(fields: [orderId], references: [id])
+  method     String // gateway|transfer|pod_cash|pod_transfer
+  gateway    String?
+  reference  String?
+  payerName  String? @map("payer_name")
+  amount     Int // kobo
+  status     String   @default("confirmed") // pending|confirmed|failed
+  recordedBy String? @map("recorded_by") // user id or "system"|"webhook"
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  @@index([orderId])
+  @@map("payments")
+}
+
+model Shipment {
+  id            String    @id @default(cuid())
+  orderId       String @map("order_id")
+  order         Order     @relation(fields: [orderId], references: [id])
+  method        String // rider|3pl|pickup
+  carrier       String?
+  trackingRef   String? @map("tracking_ref")
+  riderName     String? @map("rider_name")
+  riderPhone    String? @map("rider_phone")
+  riderId       String? @map("rider_id") // A2 → staff_members
+  dispatchOrder Int? @map("dispatch_order") // A2 stop sequence
+  codExpected   Int? @map("cod_expected") // kobo (A2)
+  status        String    @default("pending") // pending|out|delivered|failed
+  codAmount     Int? @map("cod_amount") // kobo actually collected
+  shippedAt     DateTime? @map("shipped_at")
+  deliveredAt   DateTime? @map("delivered_at")
+  failureReason String? @map("failure_reason")
+  createdAt     DateTime  @default(now()) @map("created_at")
+
+  lines     ShipmentLine[]
+  geoEvents ShipmentGeoEvent[]
+
+  @@index([orderId])
+  @@index([riderId, status])
+  @@map("shipments")
+}
+
+model ShipmentLine {
+  id          String   @id @default(cuid())
+  shipmentId  String @map("shipment_id")
+  shipment    Shipment @relation(fields: [shipmentId], references: [id])
+  orderLineId String @map("order_line_id")
+  quantity    Decimal  @db.Decimal(12, 2)
+
+  @@index([shipmentId])
+  @@map("shipment_lines")
+}
+
+model Refund {
+  id          String       @id @default(cuid())
+  orderId     String @map("order_id")
+  order       Order        @relation(fields: [orderId], references: [id])
+  scope       String // full|partial|per_line
+  amount      Int // kobo
+  reasonCode  String @map("reason_code")
+  note        String?
+  method      String // gateway_reversal|manual_transfer|store_credit
+  status      String       @default("pending") // pending|approved|processed|failed|rejected
+  requestedBy String @map("requested_by")
+  approvedBy  String? @map("approved_by")
+  processedAt DateTime? @map("processed_at")
+  gatewayRef  String? @map("gateway_ref")
+  createdAt   DateTime     @default(now()) @map("created_at")
+  lines       RefundLine[]
+
+  @@index([orderId])
+  @@index([status])
+  @@map("refunds")
+}
+
+model RefundLine {
+  id          String  @id @default(cuid())
+  refundId    String @map("refund_id")
+  refund      Refund  @relation(fields: [refundId], references: [id])
+  orderLineId String @map("order_line_id")
+  quantity    Decimal @db.Decimal(12, 2)
+  amount      Int // kobo
+
+  @@index([refundId])
+  @@map("refund_lines")
+}
+
+model Return {
+  id            String       @id @default(cuid())
+  orderId       String @map("order_id")
+  order         Order        @relation(fields: [orderId], references: [id])
+  status        String       @default("REQUESTED") // REQUESTED|APPROVED|RECEIVED|RESOLVED|REJECTED
+  reasonCode    String @map("reason_code")
+  requestedAt   DateTime     @default(now()) @map("requested_at")
+  approvedBy    String? @map("approved_by")
+  receivedAt    DateTime? @map("received_at")
+  resolution    String? // refund|exchange
+  linkedOrderId String? @map("linked_order_id")
+  lines         ReturnLine[]
+
+  @@index([orderId])
+  @@index([status])
+  @@map("returns")
+}
+
+model ReturnLine {
+  id          String  @id @default(cuid())
+  returnId    String @map("return_id")
+  return      Return  @relation(fields: [returnId], references: [id])
+  orderLineId String @map("order_line_id")
+  quantity    Decimal @db.Decimal(12, 2)
+  condition   String  @default("restockable") // restockable|damaged
+
+  @@index([returnId])
+  @@map("return_lines")
+}
+
+model OrderEvent {
+  id        String   @id @default(cuid())
+  orderId   String @map("order_id")
+  order     Order    @relation(fields: [orderId], references: [id])
+  type      String
+  payload   Json?
+  actorType String   @default("user") @map("actor_type") // user|system|webhook
+  actorId   String? @map("actor_id")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@index([orderId, createdAt])
+  @@map("order_events")
+}
+
+model OrderNote {
+  id        String   @id @default(cuid())
+  orderId   String @map("order_id")
+  order     Order    @relation(fields: [orderId], references: [id])
+  note      String
+  userId    String @map("user_id")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@index([orderId])
+  @@map("order_notes")
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Customers (Customer_Management_BRD_SRS)
+// ─────────────────────────────────────────────────────────────────────────────
+
+enum CustomerType {
+  guest
+  registered
+}
+
+enum CustomerStatus {
+  active
+  watch
+  pod_blocked
+  blocked
+}
+
+model Customer {
+  id               String         @id @default(cuid())
+  fullName         String @map("full_name")
+  primaryPhone     String         @unique @map("primary_phone") // E.164
+  altPhone         String? @map("alt_phone")
+  email            String?        @unique
+  gender           String?
+  birthMonth       Int? @map("birth_month")
+  birthDay         Int? @map("birth_day")
+  birthYear        Int? @map("birth_year")
+  preferredChannel String? @map("preferred_channel")
+  type             CustomerType   @default(guest)
+  status           CustomerStatus @default(active)
+  statusReason     String? @map("status_reason")
+  createdSource    String? @map("created_source") // web|manual|import
+  metrics          Json? // cached {orders, spend, aov, firstOrderAt, lastOrderAt, refunds, channels}
+  wishlist         String[]       @default([]) // saved product ids (account-synced wishlist)
+  failedPodCount   Int            @default(0) @map("failed_pod_count") // D-16 auto-block counter
+  anonymizedAt     DateTime? @map("anonymized_at")
+  createdAt        DateTime       @default(now()) @map("created_at")
+  updatedAt        DateTime       @updatedAt @map("updated_at")
+
+  addresses CustomerAddress[]
+  notesList CustomerNote[]
+  tags      CustomerTag[]
+  consents  Consent[]
+  aliases   CustomerAlias[]
+  orders    Order[]
+
+  @@index([fullName])
+  @@map("customers")
+}
+
+model CustomerAddress {
+  id          String       @id @default(cuid())
+  customerId  String @map("customer_id")
+  customer    Customer     @relation(fields: [customerId], references: [id])
+  label       String?
+  addressLine String @map("address_line")
+  area        String?
+  city        String?
+  zoneId      String? @map("zone_id")
+  zone        Zone?        @relation(fields: [zoneId], references: [id])
+  isDefault   Boolean      @default(false) @map("is_default")
+  status      EntityStatus @default(active)
+  createdAt   DateTime     @default(now()) @map("created_at")
+  updatedAt   DateTime     @updatedAt @map("updated_at")
+
+  @@index([customerId])
+  @@map("customer_addresses")
+}
+
+model CustomerAlias {
+  id         String   @id @default(cuid())
+  customerId String @map("customer_id")
+  customer   Customer @relation(fields: [customerId], references: [id])
+  kind       String // phone|email|merged_record
+  value      String
+  source     String?
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  @@index([value])
+  @@map("customer_aliases")
+}
+
+model CustomerTag {
+  customerId String @map("customer_id")
+  customer   Customer @relation(fields: [customerId], references: [id])
+  tag        String
+
+  @@id([customerId, tag])
+  @@index([tag])
+  @@map("customer_tags")
+}
+
+model CustomerNote {
+  id         String   @id @default(cuid())
+  customerId String @map("customer_id")
+  customer   Customer @relation(fields: [customerId], references: [id])
+  note       String
+  userId     String @map("user_id")
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  @@index([customerId])
+  @@map("customer_notes")
+}
+
+model Consent {
+  id         String   @id @default(cuid())
+  customerId String @map("customer_id")
+  customer   Customer @relation(fields: [customerId], references: [id])
+  type       String // marketing_email|marketing_sms|marketing_whatsapp
+  status     String // granted|revoked
+  source     String // checkout|staff|import
+  actor      String?
+  note       String?
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  @@index([customerId, type, createdAt])
+  @@map("consents")
+}
+
+model CustomerAccessLog {
+  id         String   @id @default(cuid())
+  userId     String @map("user_id")
+  action     String // view_profile|export|subject_export|merge|anonymize
+  customerId String? @map("customer_id")
+  detail     Json?
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  @@index([customerId])
+  @@index([userId, createdAt])
+  @@map("customer_access_log")
+}
+
+model MergeEvent {
+  id         String   @id @default(cuid())
+  survivorId String @map("survivor_id")
+  mergedId   String @map("merged_id")
+  snapshot   Json
+  userId     String @map("user_id")
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  @@map("merge_events")
+}
+
+model AnonymizationRequest {
+  id           String    @id @default(cuid())
+  customerId   String @map("customer_id")
+  requestedBy  String @map("requested_by")
+  requestedAt  DateTime  @default(now()) @map("requested_at")
+  executeAfter DateTime @map("execute_after") // requestedAt + grace window (D-17)
+  executedAt   DateTime? @map("executed_at")
+  cancelledAt  DateTime? @map("cancelled_at")
+  cancelledBy  String? @map("cancelled_by")
+
+  @@index([customerId])
+  @@map("anonymization_requests")
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Discounts & Promotions (Discounts_Promotions_BRD_SRS)
+// ─────────────────────────────────────────────────────────────────────────────
+
+enum PromotionStatus {
+  draft
+  scheduled
+  active
+  paused
+  ended
+  archived
+}
+
+model Promotion {
+  id             String          @id @default(cuid())
+  name           String
+  internalNote   String? @map("internal_note")
+  mechanism      String // code|automatic
+  valueType      String @map("value_type") // percent|fixed|free_shipping|fixed_price|bxgy
+  valueAmount    Decimal?        @db.Decimal(14, 2) @map("value_amount") // percent (e.g. 20.00) or kobo for fixed
+  scope          String // order|products|categories|shipping
+  conditions     Json            @default("{}") // {schedule:{startsAt,endsAt}, minSpend, minQty, firstOrderOnly, tags[], channels[], zones[], paymentMethods[]}
+  limits         Json            @default("{}") // {totalUses, perCustomerUses}
+  combination    Json            @default("{}") // {withProduct, withOrder, withShipping, exclusive}
+  allowBelowCost Boolean         @default(false) @map("allow_below_cost")
+  priority       Int             @default(0)
+  status         PromotionStatus @default(draft)
+  usesCount      Int             @default(0) @map("uses_count")
+  createdBy      String @map("created_by")
+  createdAt      DateTime        @default(now()) @map("created_at")
+  updatedAt      DateTime        @updatedAt @map("updated_at")
+
+  scopeItems  PromotionScopeItem[]
+  codes       PromoCode[]
+  redemptions Redemption[]
+
+  @@index([status])
+  @@map("promotions")
+}
+
+model PromotionScopeItem {
+  promotionId String @map("promotion_id")
+  promotion   Promotion @relation(fields: [promotionId], references: [id])
+  kind        String // variant|product|category|category_excl|product_excl
+  refId       String @map("ref_id")
+
+  @@id([promotionId, kind, refId])
+  @@map("promotion_scope_items")
+}
+
+model PromoCode {
+  id          String    @id @default(cuid())
+  promotionId String @map("promotion_id")
+  promotion   Promotion @relation(fields: [promotionId], references: [id])
+  code        String    @unique // stored upper-cased (case-folded)
+  kind        String    @default("shared") // shared|unique
+  maxUses     Int? @map("max_uses")
+  usesCount   Int       @default(0) @map("uses_count")
+  status      String    @default("active") // active|disabled
+  batchId     String? @map("batch_id")
+
+  @@index([promotionId])
+  @@map("promo_codes")
+}
+
+model Redemption {
+  id          String    @id @default(cuid())
+  promotionId String @map("promotion_id")
+  promotion   Promotion @relation(fields: [promotionId], references: [id])
+  codeId      String? @map("code_id")
+  orderId     String    @unique @map("order_id") // one code per order (D-23)
+  customerId  String? @map("customer_id")
+  amount      Int // kobo
+  status      String    @default("held") // held|confirmed|released
+  createdAt   DateTime  @default(now()) @map("created_at")
+  resolvedAt  DateTime? @map("resolved_at")
+
+  @@index([promotionId, status])
+  @@map("redemptions")
+}
+
+model CustomerPromotionUse {
+  promotionId String @map("promotion_id")
+  customerId  String @map("customer_id")
+  usesCount   Int    @default(0) @map("uses_count")
+
+  @@id([promotionId, customerId])
+  @@map("customer_promotion_uses")
+}
+
+model ManualDiscount {
+  id           String   @id @default(cuid())
+  orderId      String @map("order_id")
+  level        String   @default("order") // order|line
+  orderLineId  String? @map("order_line_id")
+  valueType    String @map("value_type") // percent|fixed
+  percentValue Decimal? @db.Decimal(5, 2) @map("percent_value")
+  amount       Int // kobo actually discounted
+  reason       String
+  userId       String @map("user_id")
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  @@index([orderId])
+  @@index([userId, createdAt])
+  @@map("manual_discounts")
+}
+
+model PromotionEvent {
+  id          String   @id @default(cuid())
+  promotionId String @map("promotion_id")
+  type        String
+  payload     Json?
+  actorId     String? @map("actor_id")
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  @@index([promotionId, createdAt])
+  @@map("promotion_events")
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Content (Content_Management_BRD_SRS)
+// ─────────────────────────────────────────────────────────────────────────────
+
+enum ContentStatus {
+  draft
+  scheduled
+  published
+  archived
+}
+
+model ContentItem {
+  id          String        @id @default(cuid())
+  type        String // section|page|menu|announcement|collection
+  sectionKey  String? @map("section_key") // for type=section: hero_slider|banner_grid|collection_rail|…
+  title       String
+  fields      Json          @default("{}")
+  status      ContentStatus @default(draft)
+  startsAt    DateTime? @map("starts_at")
+  endsAt      DateTime? @map("ends_at")
+  promotionId String? @map("promotion_id")
+  seo         Json?
+  slug        String?       @unique
+  systemKey   String?       @unique @map("system_key") // seeded pages (returns-policy, privacy, …)
+  createdBy   String @map("created_by")
+  createdAt   DateTime      @default(now()) @map("created_at")
+  updatedAt   DateTime      @updatedAt @map("updated_at")
+
+  versions     ContentVersion[]
+  compositions CompositionSection[]
+  mediaUsages  MediaUsage[]
+
+  @@index([type, status])
+  @@map("content_items")
+}
+
+model Composition {
+  id        String   @id @default(cuid())
+  surface   String   @unique // homepage | campaign:{slug}
+  status    String   @default("published")
+  updatedBy String? @map("updated_by")
+  updatedAt DateTime @updatedAt @map("updated_at")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  sections CompositionSection[]
+
+  @@map("compositions")
+}
+
+model CompositionSection {
+  compositionId String @map("composition_id")
+  composition   Composition @relation(fields: [compositionId], references: [id])
+  contentItemId String @map("content_item_id")
+  contentItem   ContentItem @relation(fields: [contentItemId], references: [id])
+  sortOrder     Int         @default(0) @map("sort_order")
+
+  @@id([compositionId, contentItemId])
+  @@map("composition_sections")
+}
+
+model ContentVersion {
+  id            String      @id @default(cuid())
+  contentItemId String @map("content_item_id")
+  contentItem   ContentItem @relation(fields: [contentItemId], references: [id])
+  snapshot      Json
+  editorId      String @map("editor_id")
+  publishedAt   DateTime    @default(now()) @map("published_at")
+
+  @@index([contentItemId, publishedAt])
+  @@map("content_versions")
+}
+
+model MediaAsset {
+  id          String   @id @default(cuid())
+  filename    String
+  contentHash String   @unique @map("content_hash")
+  mime        String
+  width       Int?
+  height      Int?
+  sizeBytes   Int      @default(0) @map("size_bytes")
+  url         String
+  baseAlt     String? @map("base_alt")
+  tags        String[] @default([])
+  uploadedBy  String @map("uploaded_by")
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  renditions MediaRendition[]
+  usages     MediaUsage[]
+
+  @@map("media_assets")
+}
+
+model MediaRendition {
+  id      String     @id @default(cuid())
+  assetId String @map("asset_id")
+  asset   MediaAsset @relation(fields: [assetId], references: [id])
+  width   Int
+  format  String // webp
+  url     String
+
+  @@index([assetId])
+  @@map("media_renditions")
+}
+
+model MediaUsage {
+  id            String      @id @default(cuid())
+  assetId       String @map("asset_id")
+  asset         MediaAsset  @relation(fields: [assetId], references: [id])
+  contentItemId String @map("content_item_id")
+  contentItem   ContentItem @relation(fields: [contentItemId], references: [id])
+  fieldPath     String @map("field_path")
+  altOverride   String? @map("alt_override")
+
+  @@index([assetId])
+  @@map("media_usages")
+}
+
+model Redirect {
+  id        String   @id @default(cuid())
+  fromSlug  String   @unique @map("from_slug")
+  toSlug    String @map("to_slug")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@map("redirects")
+}
+
+model NeedsAttention {
+  id            String    @id @default(cuid())
+  contentItemId String? @map("content_item_id")
+  kind          String // broken_ref|empty_collection|media_missing|promo_ended|bundle_component
+  detail        Json?
+  status        String    @default("active") // active|resolved
+  createdAt     DateTime  @default(now()) @map("created_at")
+  resolvedAt    DateTime? @map("resolved_at")
+
+  @@index([status])
+  @@map("needs_attention")
+}
+
+model ContentEvent {
+  id            String   @id @default(cuid())
+  contentItemId String? @map("content_item_id")
+  type          String
+  actorType     String   @default("user") @map("actor_type")
+  actorId       String? @map("actor_id")
+  payload       Json?
+  createdAt     DateTime @default(now()) @map("created_at")
+
+  @@index([contentItemId, createdAt])
+  @@map("content_events")
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Staff Management & Rider Workspace (Addendum A2)
+// ─────────────────────────────────────────────────────────────────────────────
+
+model StaffMember {
+  id             String    @id @default(cuid())
+  fullName       String @map("full_name")
+  photo          String?
+  title          String?
+  roleKey        String @map("role_key") // manager|management|rider (A2 role model)
+  phone          String
+  altPhone       String? @map("alt_phone")
+  branch         String?
+  employmentDate DateTime? @map("employment_date")
+  notes          String?
+  status         String    @default("active") // active|inactive
+  userId         String?   @unique @map("user_id")
+  createdBy      String @map("created_by")
+  createdAt      DateTime  @default(now()) @map("created_at")
+  updatedAt      DateTime  @updatedAt @map("updated_at")
+
+  cashLedger RiderCashLedger[]
+  dayCloses  RiderDayClose[]
+
+  @@map("staff_members")
+}
+
+model TrustedDevice {
+  id           String    @id @default(cuid())
+  userId       String @map("user_id")
+  tokenHash    String    @unique @map("token_hash")
+  label        String?
+  trustedUntil DateTime @map("trusted_until")
+  createdAt    DateTime  @default(now()) @map("created_at")
+  revokedAt    DateTime? @map("revoked_at")
+
+  @@index([userId])
+  @@map("trusted_devices")
+}
+
+model ShipmentGeoEvent {
+  id            String   @id @default(cuid())
+  shipmentId    String @map("shipment_id")
+  shipment      Shipment @relation(fields: [shipmentId], references: [id])
+  riderId       String @map("rider_id")
+  action        String // picked_up|out|delivered|failed|transfer_flagged
+  lat           Decimal  @db.Decimal(9, 6)
+  lng           Decimal  @db.Decimal(9, 6)
+  accuracyM     Decimal? @db.Decimal(8, 1) @map("accuracy_m")
+  clientTime    DateTime @map("client_time")
+  serverTime    DateTime @default(now()) @map("server_time")
+  distanceM     Decimal? @db.Decimal(10, 1) @map("distance_m")
+  verdict       String   @default("low_confidence") // verified|flagged|low_confidence
+  submittedLate Boolean  @default(false) @map("submitted_late")
+  disposition   String? // ok|address_error|unresolved
+  dispositionBy String? @map("disposition_by")
+
+  @@index([shipmentId])
+  @@index([verdict])
+  @@map("shipment_geo_events")
+}
+
+model AddressGeocode {
+  addressHash    String   @id @map("address_hash")
+  lat            Decimal  @db.Decimal(9, 6)
+  lng            Decimal  @db.Decimal(9, 6)
+  confidence     Decimal? @db.Decimal(4, 2)
+  provider       String   @default("manual")
+  manualOverride Boolean  @default(false) @map("manual_override")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+
+  @@map("address_geocodes")
+}
+
+model RiderCashLedger {
+  id         String      @id @default(cuid())
+  riderId    String @map("rider_id")
+  rider      StaffMember @relation(fields: [riderId], references: [id])
+  type       String // collection|remittance|adjustment
+  amount     Int // kobo, signed by convention (collections +, remittances −)
+  shipmentId String? @map("shipment_id")
+  reason     String?
+  recordedBy String @map("recorded_by")
+  createdAt  DateTime    @default(now()) @map("created_at")
+
+  @@index([riderId, createdAt])
+  @@map("rider_cash_ledger")
+}
+
+model RiderDayClose {
+  id         String      @id @default(cuid())
+  riderId    String @map("rider_id")
+  rider      StaffMember @relation(fields: [riderId], references: [id])
+  date       DateTime    @db.Date
+  expected   Int // kobo
+  remitted   Int // kobo
+  difference Int // kobo
+  resolution String?
+  approvedBy String? @map("approved_by")
+  status     String      @default("open") // open|closed
+  createdAt  DateTime    @default(now()) @map("created_at")
+  updatedAt  DateTime    @updatedAt @map("updated_at")
+
+  @@unique([riderId, date])
+  @@map("rider_day_close")
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Dashboard & Notifications (Admin_Dashboard_BRD_SRS §4)
+// ─────────────────────────────────────────────────────────────────────────────
+
+model Notification {
+  id            String    @id @default(cuid())
+  userId        String @map("user_id")
+  type          String // webhook_failure|reconciliation_drift|large_order|refund_outcome|stocktake_approved|…
+  payload       Json?
+  link          String?
+  createdAt     DateTime  @default(now()) @map("created_at")
+  readAt        DateTime? @map("read_at")
+  sourceEventId String @map("source_event_id")
+
+  @@unique([sourceEventId, userId]) // idempotent fan-out (FR-NTF-03)
+  @@index([userId, readAt])
+  @@map("notifications")
+}
+
+model DashboardLayout {
+  roleKey   String   @id @map("role_key")
+  widgets   Json // ordered widget key list
+  updatedBy String? @map("updated_by")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("dashboard_layouts")
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Reports governance (Reports_Analytics_BRD_SRS §4)
+// Phase-1-local: reports compute from operational tables via indexed queries;
+// the star-schema reporting store arrives with the read replica (Phase 2).
+// ─────────────────────────────────────────────────────────────────────────────
+
+model ExportLog {
+  id        String   @id @default(cuid())
+  userId    String @map("user_id")
+  report    String
+  filters   Json?
+  rows      Int      @default(0)
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@index([userId, createdAt])
+  @@map("export_log")
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Storefront (Storefront_BRD_SRS) — customer sessions, cart refs, search
+// ─────────────────────────────────────────────────────────────────────────────
+
+model CustomerSession {
+  id         String    @id // sha256 of the cookie token
+  customerId String    @map("customer_id")
+  createdAt  DateTime  @default(now()) @map("created_at")
+  expiresAt  DateTime  @map("expires_at")
+  revokedAt  DateTime? @map("revoked_at")
+
+  @@index([customerId])
+  @@map("customer_sessions")
+}
+
+model CartSnapshot {
+  id        String   @id @default(cuid()) // the cart_ref (S-BR-11)
+  lines     Json // [{variantId|bundleProductId, quantity}]
+  code      String?
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@map("cart_snapshots")
+}
+
+model SearchSynonym {
+  id       String   @id @default(cuid())
+  term     String   @unique // folded lowercase
+  synonyms String[] @default([])
+
+  @@map("search_synonyms")
+}
+
+model SearchTermLog {
+  term       String   @id // folded lowercase
+  count      Int      @default(0)
+  zeroResult Boolean  @default(false) @map("zero_result")
+  lastAt     DateTime @updatedAt @map("last_at")
+
+  @@map("search_term_log")
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Addendum A4 — Interactions Log
+// ─────────────────────────────────────────────────────────────────────────────
+
+model SupportInteraction {
+  id             String    @id @default(cuid())
+  customerId     String    @map("customer_id")
+  orderId        String?   @map("order_id")
+  channel        String // whatsapp|phone|instagram|email|in_store
+  topic          String // order_status|payment|delivery|return_refund|complaint|pre_sales|wholesale_asoebi|account_privacy|other
+  summary        String    @db.VarChar(280)
+  outcome        String // resolved|promised_action|escalated|no_action_needed
+  followUpAt     DateTime? @map("follow_up_at")
+  followUpStatus String    @default("none") @map("follow_up_status") // none|due|done|reassigned
+  assignedTo     String?   @map("assigned_to")
+  parentId       String?   @map("parent_id")
+  detail         Json? // wholesale intake fields (A4-FR-07)
+  staffId        String    @map("staff_id")
+  createdAt      DateTime  @default(now()) @map("created_at")
+
+  @@index([customerId, createdAt])
+  @@index([followUpStatus, followUpAt])
+  @@map("support_interactions")
+}
+
+model CustomerCredential {
+  customerId     String    @id @map("customer_id")
+  emailOrPhone   String    @map("email_or_phone")
+  passwordHash   String    @map("password_hash")
+  verifiedAt     DateTime? @map("verified_at")
+  lastLoginAt    DateTime? @map("last_login_at")
+  failedAttempts Int       @default(0) @map("failed_attempts")
+  lockedUntil    DateTime? @map("locked_until")
+
+  @@map("customer_credentials")
+}

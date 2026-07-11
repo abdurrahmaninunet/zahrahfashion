@@ -1,0 +1,12 @@
+**/node_modules
+**/.next
+**/.next-preview
+**/.next-verify
+**/dist
+**/uploads
+.git
+**/.env
+**/.env.*
+!**/.env.production.example
+npm-debug.log
+**/*.log
