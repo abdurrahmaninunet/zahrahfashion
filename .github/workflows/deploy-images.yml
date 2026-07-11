@@ -4,8 +4,8 @@ name: Build & push images to ECR
 # push to main, uncomment the `push:` block below.
 on:
   workflow_dispatch:
-  # push:
-  #   branches: [main]
+  push:
+    branches: [main]
 
 env:
   AWS_REGION: us-east-1
