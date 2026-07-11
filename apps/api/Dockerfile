@@ -28,5 +28,9 @@ WORKDIR /app/apps/api
 # API listens on $PORT (default 4000). Behind the ALB this is the target port.
 ENV PORT=4000
 EXPOSE 4000
-# Apply pending migrations on start, then boot. (Or run migrate as a separate task.)
-CMD ["sh", "-c", "npx prisma migrate deploy && node dist/main.js"]
+# On start: sync the schema to the DB (db push — the project has schema drift so
+# `migrate deploy` would miss columns like Customer.wishlist), seed the essentials
+# (roles, owner, zones, units — blank store unless SEED_DEMO=true), then boot.
+# Both db push and seed are idempotent. Keep the API at 1 task while this runs on
+# start; move schema/seed to a one-off task if you scale the API to many replicas.
+CMD ["sh", "-c", "npx prisma db push --skip-generate && npm run seed && node dist/main.js"]
