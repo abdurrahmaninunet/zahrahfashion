@@ -24,6 +24,9 @@ COPY --from=build /app/node_modules ./node_modules
 COPY --from=build /app/apps/api/dist ./apps/api/dist
 COPY --from=build /app/apps/api/package.json ./apps/api/package.json
 COPY --from=build /app/apps/api/prisma ./apps/api/prisma
+# seed.ts (run via tsx on startup) imports from ../src, so ship the TS source too.
+COPY --from=build /app/apps/api/src ./apps/api/src
+COPY --from=build /app/apps/api/tsconfig*.json ./apps/api/
 WORKDIR /app/apps/api
 # API listens on $PORT (default 4000). Behind the ALB this is the target port.
 ENV PORT=4000
