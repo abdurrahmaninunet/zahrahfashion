@@ -28,7 +28,7 @@ export const SETTINGS_CATALOG: SettingDef[] = [
   { key: 'store.whatsapp', domain: 'Store identity', label: 'WhatsApp number', description: 'WhatsApp Business number for click-to-chat (D-32).', type: 'string', editableBy: 'manager', default: '' },
   { key: 'store.email', domain: 'Store identity', label: 'Contact email', description: 'Public contact email.', type: 'string', editableBy: 'manager', default: '' },
   { key: 'store.address', domain: 'Store identity', label: 'Physical address', description: 'Store address for documents and pickup.', type: 'string', editableBy: 'manager', default: '' },
-  { key: 'store.social', domain: 'Store identity', label: 'Social handles', description: 'Instagram/Facebook/TikTok handles.', type: 'json', editableBy: 'manager', default: { instagram: '', facebook: '', tiktok: '' } },
+  { key: 'store.social', domain: 'Store identity', label: 'Social handles', description: 'Instagram/Facebook/TikTok handles.', type: 'json', editableBy: 'manager', default: { instagram: 'zahrah.fashion.nlg', facebook: 'https://www.facebook.com/share/19CE5n2aR2/', tiktok: 'zahrah.fashion.nlg' } },
   { key: 'store.currency', domain: 'Store identity', label: 'Currency', description: 'Store currency (fixed NGN in Phase 1).', type: 'string', editableBy: 'owner', default: 'NGN' },
   { key: 'store.timezone', domain: 'Store identity', label: 'Timezone', description: 'All schedules and report boundaries use this timezone.', type: 'string', editableBy: 'owner', default: 'Africa/Lagos' },
   { key: 'store.week_start', domain: 'Store identity', label: 'Week start', description: 'First day of the week for reports.', type: 'enum', enumValues: ['monday', 'sunday'], editableBy: 'owner', default: 'monday' },

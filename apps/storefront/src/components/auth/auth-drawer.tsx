@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { X } from 'lucide-react';
 import { useQueryClient } from '@tanstack/react-query';
 import { AuthForms } from './auth-forms';
@@ -15,13 +15,25 @@ import { closeAuthDrawer, useAuthDrawerOpen } from '@/lib/auth-drawer';
 export function AuthDrawer() {
   const open = useAuthDrawerOpen();
   const qc = useQueryClient();
+  // On mobile the panel is a bottom sheet; cap its height so its top stops just
+  // below the sticky header instead of sliding underneath it. Header height is
+  // measured live so it adapts to the announcement bar / category strip.
+  const [headerGap, setHeaderGap] = useState(88);
 
   useEffect(() => {
     if (!open) return;
+    const measure = () => {
+      const header = document.querySelector('header');
+      const bottom = header ? header.getBoundingClientRect().bottom : 0;
+      setHeaderGap(Math.max(0, Math.round(bottom)) + 8);
+    };
+    measure();
+    window.addEventListener('resize', measure);
     const onKey = (e: KeyboardEvent) => e.key === 'Escape' && closeAuthDrawer();
     window.addEventListener('keydown', onKey);
     document.body.style.overflow = 'hidden'; // lock the background
     return () => {
+      window.removeEventListener('resize', measure);
       window.removeEventListener('keydown', onKey);
       document.body.style.overflow = '';
     };
@@ -47,7 +59,8 @@ export function AuthDrawer() {
         role="dialog"
         aria-modal="true"
         aria-label="Sign in or create an account"
-        className="drawer-slide-in absolute inset-x-0 bottom-0 max-h-[90dvh] w-full overflow-y-auto rounded-t-2xl bg-white shadow-2xl sm:inset-x-auto sm:inset-y-0 sm:left-0 sm:right-auto sm:max-h-none sm:w-[60%] sm:rounded-t-none sm:border-r sm:border-stone-200"
+        style={{ ['--auth-sheet-gap' as string]: `${headerGap}px` } as React.CSSProperties}
+        className="drawer-slide-in absolute inset-x-0 bottom-0 max-h-[calc(100dvh-var(--auth-sheet-gap,88px))] w-full overflow-y-auto rounded-t-2xl bg-white shadow-2xl sm:inset-x-auto sm:inset-y-0 sm:left-0 sm:right-auto sm:max-h-none sm:w-[60%] sm:rounded-t-none sm:border-r sm:border-stone-200"
       >
         {/* Grab handle — mobile affordance for a bottom sheet; hidden on desktop. */}
         <div className="sticky top-0 z-10 flex justify-center bg-white pt-3 sm:hidden">

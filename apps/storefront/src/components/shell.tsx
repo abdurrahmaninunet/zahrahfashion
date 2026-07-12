@@ -83,10 +83,8 @@ export function Header({ context }: { context: StoreContext }) {
     return out;
   };
   const activeDescendants = activeRoot ? descendantsOf(activeRoot.id) : [];
-  // Placeholder nav labels (real categories to come) — linked to the matching
-  // category when one exists, otherwise to a search for the label.
-  const DEMO_SLUGS = ['fabric', 'laces', 'perfumes', 'caps']; // populated with placeholder products
-  const COMING_SOON: string[] = []; // all header items launched
+  // Nav labels resolve to the matching real category when one exists, otherwise
+  // to a search for the label (so nothing dead-ends).
   // The MIM store link is gated on the master toggle (admin MIM → Content tab).
   const visibleNavLabels = NAV_LABELS.filter((l) => l !== 'MIM Store' || context.mimEnabled);
   const inlineNav = [
@@ -98,8 +96,6 @@ export function Header({ context }: { context: StoreContext }) {
       if (key === 'anko') return { label, href: '/anko' };
       if (key === 'gift card') return { label, href: '/gift-card' };
       if (key === 'balance') return { label, href: '/balance' };
-      if (DEMO_SLUGS.includes(key)) return { label, href: `/c/${key}` };
-      if (COMING_SOON.includes(key)) return { label, href: `/coming-soon/${key.replace(/\s+/g, '-')}` };
       const match = context.categories.find((c) => c.name.toLowerCase() === key);
       return { label, href: match ? `/c/${match.slug}` : `/search?q=${encodeURIComponent(label)}` };
     }),
