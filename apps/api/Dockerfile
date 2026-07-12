@@ -37,3 +37,5 @@ EXPOSE 4000
 # Both db push and seed are idempotent. Keep the API at 1 task while this runs on
 # start; move schema/seed to a one-off task if you scale the API to many replicas.
 CMD ["sh", "-c", "npx prisma db push --skip-generate && npm run seed && node dist/main.js"]
+
+
