@@ -16,6 +16,8 @@ export interface ProductCardData {
   unitName: string;
   soldOut: boolean;
   onlyLeft: number | null;
+  /** Live available stock — caps the add-to-cart stepper. */
+  maxAvailable?: number;
   swatches: string[];
   /** Set only for simple single-variant products that can be added directly. */
   variantId?: string | null;
@@ -37,6 +39,7 @@ export function toTile(product: ProductCardData, priority?: boolean, hrefBase = 
     soldOut: product.soldOut,
     variantId: product.variantId ?? null,
     unitName: product.unitName,
+    maxAvailable: product.maxAvailable,
     priority,
   };
 }

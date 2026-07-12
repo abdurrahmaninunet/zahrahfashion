@@ -154,7 +154,12 @@ export default function CartPage() {
                     <div className="flex items-center rounded-md border border-stone-200">
                       <button className="h-8 w-8 cursor-pointer" onClick={() => cart.updateQty(key, Math.max(line.minQty, Number((line.quantity - line.increment).toFixed(2))))}>−</button>
                       <span className="tabular w-14 border-x border-stone-100 text-center text-sm">{qty(line.quantity)}{perUnit ? ` ${line.unitName.slice(0, 2)}` : ''}</span>
-                      <button className="h-8 w-8 cursor-pointer" onClick={() => cart.updateQty(key, Number((line.quantity + line.increment).toFixed(2)))}>+</button>
+                      <button
+                        className="h-8 w-8 cursor-pointer disabled:cursor-not-allowed disabled:text-stone-300"
+                        disabled={line.maxAvailable != null && line.quantity >= line.maxAvailable}
+                        title={line.maxAvailable != null && line.quantity >= line.maxAvailable ? 'No more in stock' : undefined}
+                        onClick={() => cart.updateQty(key, Number((line.quantity + line.increment).toFixed(2)))}
+                      >+</button>
                     </div>
                     )}
                     <div className="text-right">

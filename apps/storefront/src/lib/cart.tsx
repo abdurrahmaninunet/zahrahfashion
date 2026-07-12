@@ -85,19 +85,28 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     if (loaded) localStorage.setItem(STORAGE_KEY, JSON.stringify({ lines, code, at: Date.now() }));
   }, [lines, code, loaded]);
 
+  // Never let a line exceed the item's live available stock, and never below 0.
+  const cap = (quantity: number, max?: number) =>
+    max != null ? Math.min(Math.max(0, quantity), max) : Math.max(0, quantity);
+
   const add = useCallback((line: CartLine) => {
     setLines((prev) => {
       const key = lineKey(line);
       const existing = prev.find((l) => lineKey(l) === key);
       if (existing) {
-        return prev.map((l) => (lineKey(l) === key ? { ...l, quantity: l.quantity + line.quantity } : l));
+        const max = line.maxAvailable ?? existing.maxAvailable;
+        return prev.map((l) => (lineKey(l) === key
+          ? { ...l, quantity: cap(l.quantity + line.quantity, max), maxAvailable: max }
+          : l));
       }
-      return [...prev, line];
+      return [...prev, { ...line, quantity: cap(line.quantity, line.maxAvailable) }];
     });
   }, []);
 
   const updateQty = useCallback((key: string, quantity: number) => {
-    setLines((prev) => prev.map((l) => (lineKey(l) === key ? { ...l, quantity } : l)).filter((l) => l.quantity > 0));
+    setLines((prev) => prev
+      .map((l) => (lineKey(l) === key ? { ...l, quantity: cap(quantity, l.maxAvailable) } : l))
+      .filter((l) => l.quantity > 0));
   }, []);
 
   const updateLine = useCallback((key: string, updater: (line: CartLine) => CartLine) => {

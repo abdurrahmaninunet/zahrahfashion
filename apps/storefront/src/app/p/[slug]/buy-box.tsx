@@ -100,6 +100,8 @@ export function BuyBox({ product, storeName, asideExtra }: {
     ? lineKey({ bundleProductId: product.id })
     : variant ? lineKey({ variantId: variant.id, formatId: format?.id }) : '';
   const inCart = cartKey ? (lines.find((l) => lineKey(l) === cartKey)?.quantity ?? 0) : 0;
+  const cartLineMax = cartKey ? lines.find((l) => lineKey(l) === cartKey)?.maxAvailable : undefined;
+  const atMaxCart = cartLineMax != null && inCart >= cartLineMax;
 
   function decCart() {
     const next = Number((inCart - unitInc).toFixed(2));
@@ -107,6 +109,7 @@ export function BuyBox({ product, storeName, asideExtra }: {
     else updateQty(cartKey, next);
   }
   function incCart() {
+    if (atMaxCart) return;
     updateQty(cartKey, Number((inCart + unitInc).toFixed(2)));
   }
 
@@ -165,6 +168,8 @@ export function BuyBox({ product, storeName, asideExtra }: {
         slug: product.slug,
         minQty: unitMin,
         increment: unitInc,
+        // Cap the stepper at what's actually in stock (in this line's own units).
+        maxAvailable: typeof check.lines[0]?.available === 'number' ? check.lines[0].available : undefined,
       });
       return true;
     } finally {
@@ -414,8 +419,10 @@ export function BuyBox({ product, storeName, asideExtra }: {
               <button
                 type="button"
                 onClick={incCart}
+                disabled={atMaxCart}
                 aria-label="Increase quantity"
-                className="flex h-full w-12 items-center justify-center rounded-r-full transition-colors hover:bg-amber-500"
+                title={atMaxCart ? 'No more in stock' : undefined}
+                className="flex h-full w-12 items-center justify-center rounded-r-full transition-colors hover:bg-amber-500 disabled:cursor-not-allowed disabled:opacity-40"
               >
                 <Plus size={16} />
               </button>

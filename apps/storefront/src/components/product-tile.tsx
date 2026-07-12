@@ -40,6 +40,8 @@ export interface ProductTileData {
    *  shopper can pick a variant (prevents phantom ₦0 cart lines). */
   variantId?: string | null;
   unitName?: string;
+  /** Live available stock — caps the add-to-cart stepper. */
+  maxAvailable?: number;
 }
 
 export function ProductTile({ item }: { item: ProductTileData }) {
@@ -81,12 +83,16 @@ export function ProductTile({ item }: { item: ProductTileData }) {
       slug: item.href.startsWith("/p/") ? item.href.slice(3) : item.id,
       minQty: 1,
       increment: 1,
+      maxAvailable: item.maxAvailable,
     });
   }
+
+  const atMax = item.maxAvailable != null && inCart >= item.maxAvailable;
 
   function inc(e: React.MouseEvent) {
     e.preventDefault();
     e.stopPropagation();
+    if (atMax) return;
     updateQty(cartKey, inCart + 1);
   }
 
@@ -258,8 +264,10 @@ export function ProductTile({ item }: { item: ProductTileData }) {
             <button
               type="button"
               onClick={inc}
+              disabled={atMax}
               aria-label="Increase quantity"
-              className="flex h-full w-10 items-center justify-center rounded-r-full transition-colors hover:bg-amber-500"
+              title={atMax ? "No more in stock" : undefined}
+              className="flex h-full w-10 items-center justify-center rounded-r-full transition-colors hover:bg-amber-500 disabled:cursor-not-allowed disabled:opacity-40"
             >
               <Plus size={14} />
             </button>

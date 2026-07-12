@@ -81,6 +81,7 @@ export class StoreCatalogService {
     for (const p of products) {
       const active = p.variants.filter((v) => v.status === 'active');
       if (!active.length && p.type === 'standard') continue;
+      // (availability is computed just below; sold-out products are skipped there)
 
       let priceMin: number, compareAt: number | null = null, badge: string | null = null, available: number;
       let savings: number | null = null;
@@ -115,6 +116,8 @@ export class StoreCatalogService {
       const directEligible = !cardHasFormats && (cardWholeItem || !p.category.fractionalAllowed);
       const directVariantId =
         p.type === 'standard' && active.length === 1 && directEligible ? active[0].id : null;
+      // Sold-out products are hidden from the storefront entirely (no card).
+      if (available <= 0) continue;
       cards.push({
         id: p.id,
         slug: p.slug,
@@ -130,8 +133,9 @@ export class StoreCatalogService {
         badge,
         savings,
         unitName: cardWholeItem ? 'piece' : p.sellUnitId ? (await this.unitName(p.sellUnitId)) : 'piece',
-        soldOut: available <= 0,
-        onlyLeft: available > 0 && available <= threshold ? available : null, // S-D-01
+        soldOut: false,
+        onlyLeft: available <= threshold ? available : null, // S-D-01
+        maxAvailable: available, // stepper cap — quantity can't exceed live stock
         swatches: this.swatches(p),
       });
     }

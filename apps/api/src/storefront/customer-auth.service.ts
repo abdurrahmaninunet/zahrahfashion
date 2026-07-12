@@ -317,9 +317,16 @@ export class CustomerAuthService {
     const customer = phone
       ? await this.prisma.customer.findUnique({ where: { primaryPhone: phone } })
       : await this.prisma.customer.findUnique({ where: { email: identifier.toLowerCase().trim() } });
-    if (!customer || !customer.email) return { pendingToken: fakeToken };
+    // Diagnostic only — never logs the OTP code, only which branch we take.
+    if (!customer || !customer.email) {
+      console.warn(`[reset] no customer with an email for "${identifier}" (looked up by ${phone ? 'phone' : 'email'}) — nothing sent`);
+      return { pendingToken: fakeToken };
+    }
     const cred = await this.prisma.customerCredential.findUnique({ where: { customerId: customer.id } });
-    if (!cred) return { pendingToken: fakeToken };
+    if (!cred) {
+      console.warn(`[reset] customer ${customer.id} (${customer.email}) has no password credential — nothing sent`);
+      return { pendingToken: fakeToken };
+    }
 
     const now = Date.now();
     const code = String(Math.floor(100_000 + Math.random() * 900_000));
@@ -327,10 +334,11 @@ export class CustomerAuthService {
     await this.store.set(resetKey(pendingToken), { customerId: customer.id, code, expiresAt: now + OTP_TTL_MS, attempts: 0 }, OTP_TTL_MS / 1000);
     const sent = await this.sendEmail(
       customer.email,
-      'Reset your Zahrah Fashion password',
+      'Reset your Zahra Fashion password',
       this.otpEmailHtml('Reset your password', 'Use this code to set a new password for your account:', code),
-      `Your Zahrah Fashion password reset code is ${code}. It expires in 10 minutes.`,
+      `Your Zahra Fashion password reset code is ${code}. It expires in 10 minutes.`,
     );
+    console.log(`[reset] reset code emailed to ${customer.email} (accepted-by-resend=${sent})`);
     const devCode = !sent && process.env.NODE_ENV !== 'production' ? code : undefined;
     return { pendingToken, ...(devCode ? { devCode } : {}) };
   }
