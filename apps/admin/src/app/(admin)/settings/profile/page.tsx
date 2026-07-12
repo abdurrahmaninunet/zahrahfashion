@@ -83,7 +83,7 @@ export default function StoreProfilePage() {
 
       <Card>
         <div className="space-y-4">
-          <Field label="Store name"><Input value={form.name} onChange={set('name')} disabled={!canEdit} placeholder="Zahrah Fashion" /></Field>
+          <Field label="Store name"><Input value={form.name} onChange={set('name')} disabled={!canEdit} placeholder="Zahra Fashion" /></Field>
 
           <div className="grid gap-4 sm:grid-cols-2">
             <Field label="Contact phone"><Input value={form.phone} onChange={set('phone')} disabled={!canEdit} placeholder="0803 123 4567" /></Field>

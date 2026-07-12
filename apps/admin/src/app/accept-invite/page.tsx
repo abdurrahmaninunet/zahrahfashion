@@ -33,7 +33,7 @@ function AcceptInviteInner() {
   return (
     <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-stone-100 to-brand-50 p-4">
       <div className="w-full max-w-sm rounded-2xl border border-stone-200 bg-white p-8 shadow-xl">
-        <h1 className="mb-1 text-lg font-bold">Welcome to Zahrah Admin</h1>
+        <h1 className="mb-1 text-lg font-bold">Welcome to Zahra Admin</h1>
         <p className="mb-5 text-sm text-stone-500">Set your password to activate your staff account.</p>
         <form onSubmit={submit} className="space-y-4">
           <Field label="Password (min 10 characters)">

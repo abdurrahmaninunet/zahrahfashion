@@ -71,7 +71,7 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
       )}>
         <div className="flex h-14 items-center gap-2 border-b border-stone-100 px-4">
           <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-brand-600 font-bold text-white">Z</div>
-          <span className="font-semibold">Zahrah Admin</span>
+          <span className="font-semibold">Zahra Admin</span>
           <button className="ml-auto lg:hidden cursor-pointer" onClick={() => setMobileNav(false)}><X size={18} /></button>
         </div>
         <nav className="space-y-0.5 p-2">

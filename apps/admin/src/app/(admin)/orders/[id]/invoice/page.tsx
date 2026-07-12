@@ -36,7 +36,7 @@ export default function InvoicePage() {
       <div className="border border-stone-200 p-8 print:border-0">
         <div className="mb-8 flex items-start justify-between">
           <div>
-            <h1 className="text-2xl font-bold">{String(store['store.name'] ?? 'Zahrah Fashion')}</h1>
+            <h1 className="text-2xl font-bold">{String(store['store.name'] ?? 'Zahra Fashion')}</h1>
             <p className="text-sm text-stone-500">{String(store['store.address'] ?? '')}</p>
             <p className="text-sm text-stone-500">{String(store['store.phone'] ?? '')} {String(store['store.email'] ?? '')}</p>
           </div>

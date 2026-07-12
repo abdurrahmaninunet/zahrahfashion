@@ -121,7 +121,7 @@ export function AuthForms({ onDone }: { onDone: () => void }) {
             <header className="mb-6 text-center">
               <h1 className="font-display text-2xl font-bold">{view === 'login' ? 'Welcome back' : 'Create your account'}</h1>
               <p className="mt-1 text-sm text-stone-500">
-                {view === 'login' ? 'Sign in to track orders and save favourites.' : 'Join Zahrah — it only takes a minute.'}
+                {view === 'login' ? 'Sign in to track orders and save favourites.' : 'Join Zahra — it only takes a minute.'}
               </p>
             </header>
 

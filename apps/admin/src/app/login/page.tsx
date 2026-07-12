@@ -72,7 +72,7 @@ export default function LoginPage() {
       <div className="w-full max-w-sm rounded-2xl border border-stone-200 bg-white p-8 shadow-xl">
         <div className="mb-6 text-center">
           <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-xl bg-brand-600 text-xl font-bold text-white">Z</div>
-          <h1 className="text-lg font-bold">Zahrah Admin</h1>
+          <h1 className="text-lg font-bold">Zahra Admin</h1>
           <p className="text-sm text-stone-500">{pendingToken ? 'Enter your login code' : 'Sign in to your staff account'}</p>
         </div>
         <form onSubmit={submit} className="space-y-4">

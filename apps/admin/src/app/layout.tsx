@@ -3,8 +3,8 @@ import './globals.css';
 import { Providers } from './providers';
 
 export const metadata: Metadata = {
-  title: 'Zahrah Admin',
-  description: 'Zahrah Fashion admin portal',
+  title: 'Zahra Admin',
+  description: 'Zahra Fashion admin portal',
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

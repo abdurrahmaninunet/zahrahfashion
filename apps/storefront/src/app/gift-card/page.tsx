@@ -80,7 +80,7 @@ function GiftCardTile({ card, onShare, onUse }: { card: GiftCard; onShare: () =>
   return (
     <div className={`${CARD_CLS} relative flex flex-col justify-between rounded-2xl bg-gradient-to-br p-5 text-white shadow-md ${claimed ? 'from-stone-500 to-stone-700 opacity-60 grayscale' : 'from-[#8a6d1f] to-[#4a3910]'}`}>
       <div className="flex items-start justify-between">
-        <span className="text-xs font-semibold uppercase tracking-[0.2em] opacity-80">Zahrah Gift</span>
+        <span className="text-xs font-semibold uppercase tracking-[0.2em] opacity-80">Zahra Gift</span>
         <Gift size={20} className="opacity-80" />
       </div>
       <div>

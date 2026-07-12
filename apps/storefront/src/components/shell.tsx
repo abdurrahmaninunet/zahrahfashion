@@ -121,7 +121,7 @@ export function Header({ context }: { context: StoreContext }) {
               <Menu size={20} />
             </button>
             <Link href="/" className="font-display whitespace-nowrap text-[17px] font-bold uppercase tracking-[0.08em] sm:text-[24px] sm:tracking-[0.16em]">
-              {context.store.name || 'Zahrah'}
+              {context.store.name || 'Zahra'}
             </Link>
           </div>
 
@@ -364,7 +364,7 @@ export function Header({ context }: { context: StoreContext }) {
           <div className="absolute inset-0 bg-black/40" onClick={() => setMenuOpen(false)} />
           <div className="absolute inset-y-0 left-0 w-72 overflow-y-auto bg-white p-5">
             <div className="mb-4 flex items-center justify-between">
-              <span className="font-display text-lg font-bold">{context.store.name || 'Zahrah'}</span>
+              <span className="font-display text-lg font-bold">{context.store.name || 'Zahra'}</span>
               <button aria-label="Close menu" className="cursor-pointer" onClick={() => setMenuOpen(false)}><X size={20} /></button>
             </div>
             <nav className="space-y-1">
@@ -449,7 +449,7 @@ export function Footer({ context }: { context: StoreContext }) {
     <footer className="mt-16 bg-stone-950 text-stone-300">
       <div className="mx-auto max-w-[1905px] px-4 lg:px-[8rem] pt-12">
         <p className="font-display text-3xl font-bold uppercase tracking-[0.22em] text-white md:text-5xl">
-          {context.store.name || 'Zahrah'}
+          {context.store.name || 'Zahra'}
         </p>
         <p className="mt-2 max-w-md text-sm text-stone-400">
           Fabrics that drape, scents that linger — delivered across Nigeria.
@@ -509,7 +509,7 @@ export function Footer({ context }: { context: StoreContext }) {
         </div>
       </div>
       <p className="border-t border-stone-800 py-4 text-center text-xs text-stone-500">
-        © {new Date().getFullYear()} {context.store.name || 'Zahrah Fashion'} — Style redefined
+        © {new Date().getFullYear()} {context.store.name || 'Zahra Fashion'} — Style redefined
       </p>
     </footer>
   );
@@ -527,7 +527,7 @@ export function WhatsAppFloat({ context, message }: { context: StoreContext; mes
   if (!context.store.whatsapp) return null;
 
   async function open() {
-    let text = message ?? context.store.whatsappMessage ?? "Hi ZahrahFashion! I'm browsing your store";
+    let text = message ?? context.store.whatsappMessage ?? "Hi ZahraFashion! I'm browsing your store";
     // S-BR-11: include a cart-restore reference when the cart has items.
     if (lines.length) {
       try {

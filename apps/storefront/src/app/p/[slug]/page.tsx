@@ -39,7 +39,7 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
   }
 
   // Store name for the buy-box "sold by" line (non-critical — degrades to default).
-  let storeName = 'Zahrah Fashion';
+  let storeName = 'Zahra Fashion';
   try {
     const ctx = await serverApi<{ store: { name: string } }>('/store/context');
     if (ctx.store.name) storeName = ctx.store.name;

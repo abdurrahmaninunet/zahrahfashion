@@ -6,7 +6,7 @@ import { whatsappLink } from '@/lib/format';
 export const revalidate = 300;
 export const metadata: Metadata = {
   title: 'Our shops',
-  description: 'Visit Zahrah Fashion in person — store locations, opening hours and contact details.',
+  description: 'Visit Zahra Fashion in person — store locations, opening hours and contact details.',
 };
 
 interface ShopLocation {

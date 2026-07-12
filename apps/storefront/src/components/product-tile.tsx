@@ -1,11 +1,19 @@
-'use client';
+"use client";
 
-import Link from 'next/link';
-import { useRouter } from 'next/navigation';
-import { Heart, Minus, Plus, ShoppingCart, Star, Trash2, Truck } from 'lucide-react';
-import { naira } from '@/lib/format';
-import { lineKey, useCart } from '@/lib/cart';
-import { toggleWishlist, useWishlisted } from '@/lib/wishlist';
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import {
+  Heart,
+  Minus,
+  Plus,
+  ShoppingCart,
+  Star,
+  Trash2,
+  Truck,
+} from "lucide-react";
+import { naira } from "@/lib/format";
+import { lineKey, useCart } from "@/lib/cart";
+import { toggleWishlist, useWishlisted } from "@/lib/wishlist";
 
 /**
  * Shared product card — square image, delivery ribbon, wishlist heart, star
@@ -41,13 +49,18 @@ export function ProductTile({ item }: { item: ProductTileData }) {
   const wishlisted = useWishlisted(item.id);
   // Only simple products with a resolved variantId get an in-place stepper; the
   // rest route to the PDP, so their line count is always 0 here.
-  const cartKey = item.variantId ? lineKey({ variantId: item.variantId }) : '';
-  const inCart = item.variantId ? (lines.find((l) => lineKey(l) === cartKey)?.quantity ?? 0) : 0;
+  const cartKey = item.variantId ? lineKey({ variantId: item.variantId }) : "";
+  const inCart = item.variantId
+    ? (lines.find((l) => lineKey(l) === cartKey)?.quantity ?? 0)
+    : 0;
 
   const discounted = item.compareAt != null && item.compareAt > item.price;
-  const off = discounted ? Math.round(((item.compareAt! - item.price) / item.compareAt!) * 100) : 0;
+  const off = discounted
+    ? Math.round(((item.compareAt! - item.price) / item.compareAt!) * 100)
+    : 0;
   // Show "Save ₦X" whenever there's a crossed-out price (or an explicit savings).
-  const savings = item.savings ?? (discounted ? item.compareAt! - item.price : 0);
+  const savings =
+    item.savings ?? (discounted ? item.compareAt! - item.price : 0);
   const rating = item.rating ?? 4.8;
 
   function addToCart(e: React.MouseEvent) {
@@ -65,8 +78,8 @@ export function ProductTile({ item }: { item: ProductTileData }) {
       quantity: 1,
       name: item.name,
       image: item.image ?? null,
-      unitName: item.unitName ?? 'piece',
-      slug: item.href.startsWith('/p/') ? item.href.slice(3) : item.id,
+      unitName: item.unitName ?? "piece",
+      slug: item.href.startsWith("/p/") ? item.href.slice(3) : item.id,
       minQty: 1,
       increment: 1,
     });
@@ -88,14 +101,17 @@ export function ProductTile({ item }: { item: ProductTileData }) {
   return (
     <div className="group flex flex-col border border-stone-200 bg-white transition-shadow hover:shadow-md">
       <div className="relative">
-        <Link href={item.href} className={`media-box block aspect-square ${item.image ? '' : `bg-gradient-to-br ${item.bg ?? 'from-stone-100 to-stone-200'}`}`}>
+        <Link
+          href={item.href}
+          className={`media-box block aspect-square ${item.image ? "" : `bg-gradient-to-br ${item.bg ?? "from-stone-100 to-stone-200"}`}`}
+        >
           {item.image ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img
               src={item.image}
               alt={item.name}
-              loading={item.priority ? 'eager' : 'lazy'}
-              fetchPriority={item.priority ? 'high' : undefined}
+              loading={item.priority ? "eager" : "lazy"}
+              fetchPriority={item.priority ? "high" : undefined}
               className="transition-transform duration-300 group-hover:scale-[1.04]"
             />
           ) : (
@@ -112,13 +128,15 @@ export function ProductTile({ item }: { item: ProductTileData }) {
 
           {!item.soldOut && (
             <span className="absolute inset-x-0 bottom-0 z-[5] flex items-center gap-1 bg-[#8a6d1f] px-2 py-1 text-[11px] font-semibold text-white">
-              <Truck size={12} /> Free delivery in Lagos
+              <Truck size={12} /> Free delivery in Abuja
             </span>
           )}
 
           {item.soldOut && (
             <span className="absolute inset-0 z-[6] flex items-center justify-center bg-white/55">
-              <span className="rounded bg-stone-800/90 px-2.5 py-1 text-xs font-semibold text-white">Sold out</span>
+              <span className="rounded bg-stone-800/90 px-2.5 py-1 text-xs font-semibold text-white">
+                Sold out
+              </span>
             </span>
           )}
         </Link>
@@ -126,28 +144,49 @@ export function ProductTile({ item }: { item: ProductTileData }) {
         {/* Wishlist heart — sibling of the image link so it stays clickable */}
         <button
           type="button"
-          aria-label={wishlisted ? 'Remove from wishlist' : 'Save to wishlist'}
+          aria-label={wishlisted ? "Remove from wishlist" : "Save to wishlist"}
           aria-pressed={wishlisted}
           onClick={() => toggleWishlist(item.id)}
           className="absolute right-2 top-2 z-10 flex h-8 w-8 items-center justify-center rounded-full border border-stone-200 bg-white/90 backdrop-blur transition-colors hover:bg-white"
         >
-          <Heart size={15} className={wishlisted ? 'fill-rose-500 text-rose-500' : 'text-stone-500'} />
+          <Heart
+            size={15}
+            className={
+              wishlisted ? "fill-rose-500 text-rose-500" : "text-stone-500"
+            }
+          />
         </button>
       </div>
 
       <div className="flex flex-1 flex-col p-2">
-        <Link href={item.href} className="line-clamp-2 min-h-[2.4rem] text-[13px] leading-snug text-stone-700 hover:text-stone-950">
+        <Link
+          href={item.href}
+          className="line-clamp-2 min-h-[2.4rem] text-[13px] leading-snug text-stone-700 hover:text-stone-950"
+        >
           {item.name}
         </Link>
 
         {/* Star rating */}
         <div className="mt-1 flex items-center gap-1">
-          <span className="flex items-center" aria-label={`${rating.toFixed(1)} out of 5 stars`}>
+          <span
+            className="flex items-center"
+            aria-label={`${rating.toFixed(1)} out of 5 stars`}
+          >
             {[0, 1, 2, 3, 4].map((i) => (
-              <Star key={i} size={12} className={i < Math.round(rating) ? 'fill-amber-400 text-amber-400' : 'fill-stone-200 text-stone-200'} />
+              <Star
+                key={i}
+                size={12}
+                className={
+                  i < Math.round(rating)
+                    ? "fill-amber-400 text-amber-400"
+                    : "fill-stone-200 text-stone-200"
+                }
+              />
             ))}
           </span>
-          <span className="text-[11px] font-medium text-stone-700">{rating.toFixed(1)}</span>
+          <span className="text-[11px] font-medium text-stone-700">
+            {rating.toFixed(1)}
+          </span>
           {item.sold ? (
             <span className="text-[11px] text-stone-400">{item.sold}</span>
           ) : item.reviews != null ? (
@@ -158,12 +197,20 @@ export function ProductTile({ item }: { item: ProductTileData }) {
         {/* Fixed two-line price block (price, then was-price + discount on a
             reserved line) so every card is the same height. */}
         <div className="mt-1">
-          <div className="tabular text-base font-bold text-stone-900">{naira(item.price)}</div>
+          <div className="tabular text-base font-bold text-stone-900">
+            {naira(item.price)}
+          </div>
           <div className="flex min-h-[1rem] items-center gap-1.5">
             {item.compareAt != null && item.compareAt > item.price && (
-              <span className="text-[11px] text-stone-400 line-through">{naira(item.compareAt)}</span>
+              <span className="text-[11px] text-stone-400 line-through">
+                {naira(item.compareAt)}
+              </span>
             )}
-            {off > 0 && <span className="text-[11px] font-bold text-[#c02b2b]">−{off}%</span>}
+            {off > 0 && (
+              <span className="text-[11px] font-bold text-[#c02b2b]">
+                −{off}%
+              </span>
+            )}
           </div>
         </div>
 
@@ -171,10 +218,14 @@ export function ProductTile({ item }: { item: ProductTileData }) {
             same height whether or not these are present. */}
         <div className="mt-0.5 min-h-[2rem]">
           {savings > 0 && (
-            <p className="text-[11px] font-medium leading-4 text-[#c02b2b]">Save {naira(savings)}</p>
+            <p className="text-[11px] font-medium leading-4 text-[#c02b2b]">
+              Save {naira(savings)}
+            </p>
           )}
           {item.onlyLeft != null && (
-            <p className="text-[11px] font-medium leading-4 text-amber-600">Only {item.onlyLeft} left</p>
+            <p className="text-[11px] font-medium leading-4 text-amber-600">
+              Only {item.onlyLeft} left
+            </p>
           )}
         </div>
 
@@ -201,12 +252,16 @@ export function ProductTile({ item }: { item: ProductTileData }) {
             <button
               type="button"
               onClick={dec}
-              aria-label={inCart === 1 ? 'Remove from cart' : 'Decrease quantity'}
+              aria-label={
+                inCart === 1 ? "Remove from cart" : "Decrease quantity"
+              }
               className="flex h-full w-10 items-center justify-center rounded-l-full transition-colors hover:bg-amber-500"
             >
               {inCart === 1 ? <Trash2 size={14} /> : <Minus size={14} />}
             </button>
-            <span className="tabular text-xs font-semibold">{inCart} in cart</span>
+            <span className="tabular text-xs font-semibold">
+              {inCart} in cart
+            </span>
             <button
               type="button"
               onClick={inc}

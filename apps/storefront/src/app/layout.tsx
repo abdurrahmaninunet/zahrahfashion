@@ -12,7 +12,7 @@ const sans = Jost({ subsets: ['latin'], variable: '--font-sans-var', display: 's
 export const revalidate = 10; // keep the shared shell (announcement, nav) fresh
 
 export async function generateMetadata(): Promise<Metadata> {
-  let name = 'Zahrah Fashion';
+  let name = 'Zahra Fashion';
   try {
     const context = await serverApi<StoreContext>('/store/context');
     if (context.store.name) name = String(context.store.name);
@@ -31,7 +31,7 @@ export const viewport: Viewport = {
 };
 
 const FALLBACK_CONTEXT: StoreContext = {
-  store: { name: 'Zahrah Fashion', phone: '', whatsapp: '', whatsappMessage: '', email: '', address: '', social: {} },
+  store: { name: 'Zahra Fashion', phone: '', whatsapp: '', whatsappMessage: '', email: '', address: '', social: {} },
   mimEnabled: true,
   podAvailable: false,
   announcement: null,

@@ -13,10 +13,10 @@ export const STATIC_PAGES: Record<string, StaticPage> = {
   'about-us': {
     title: 'About Us',
     body: `
-<p>At Zahrah Fashion, we believe looking your best should feel effortless. We offer carefully selected premium fabrics, luxurious fragrances, and timeless accessories that help you celebrate life's special moments in style. Wherever you are in Nigeria, we're here to bring quality and elegance right to your doorstep.</p>
+<p>At Zahra Fashion, we believe looking your best should feel effortless. We offer carefully selected premium fabrics, luxurious fragrances, and timeless accessories that help you celebrate life's special moments in style. Wherever you are in Nigeria, we're here to bring quality and elegance right to your doorstep.</p>
 
 <h2>Our Story</h2>
-<p>Zahrah Fashion was born in Abuja with a simple idea: everyone deserves to look and feel their best, whether it's for a wedding, an owambe, Friday prayers, or everyday life. What started as a passion for beautiful fabrics has grown into a trusted destination for Swiss voile lace, rich Ankara prints, long-lasting oud perfumes, handwoven caps, and more.</p>
+<p>Zahra Fashion was born in Abuja with a simple idea: everyone deserves to look and feel their best, whether it's for a wedding, an owambe, Friday prayers, or everyday life. What started as a passion for beautiful fabrics has grown into a trusted destination for Swiss voile lace, rich Ankara prints, long-lasting oud perfumes, handwoven caps, and more.</p>
 <p>Every item we offer is chosen with care — because we know it's not just about what you wear, it's about how it makes you feel.</p>
 
 <h2>What We Stand For</h2>
@@ -25,14 +25,14 @@ export const STATIC_PAGES: Record<string, StaticPage> = {
 <p><strong>Something for Every Occasion</strong><br/>Whether you're buying a single wrapper, shopping for yourself, or placing a full aso-ebi order for a celebration, we've got you covered.</p>
 
 <h2>Style That Speaks for You</h2>
-<p>From weddings and family celebrations to everyday elegance, Zahrah Fashion is here to help you express your style with confidence. Whatever the occasion, we're proud to be part of your journey — bringing quality, tradition, and modern fashion together in one place.</p>
+<p>From weddings and family celebrations to everyday elegance, Zahra Fashion is here to help you express your style with confidence. Whatever the occasion, we're proud to be part of your journey — bringing quality, tradition, and modern fashion together in one place.</p>
 `.trim(),
   },
 
   'privacy-policy': {
     title: 'Privacy Policy',
     body: `
-<p>At Zahrah Fashion, your privacy matters to us. We are committed to protecting your personal information and being transparent about how we collect, use, and safeguard it. This Privacy Policy explains our practices and is provided for general information only — it does not constitute legal advice.</p>
+<p>At Zahra Fashion, your privacy matters to us. We are committed to protecting your personal information and being transparent about how we collect, use, and safeguard it. This Privacy Policy explains our practices and is provided for general information only — it does not constitute legal advice.</p>
 
 <h2>Information We Collect</h2>
 <p>When you shop with us or contact us, we may collect:</p>
@@ -60,14 +60,14 @@ export const STATIC_PAGES: Record<string, StaticPage> = {
 
 <h2>Contact Us</h2>
 <p>If you have any questions about this Privacy Policy or how we handle your information, please contact us at <a href="mailto:hello@zahrahfashion.com">hello@zahrahfashion.com</a>.</p>
-<p>Thank you for trusting Zahrah Fashion. We value your privacy and are committed to keeping your information safe.</p>
+<p>Thank you for trusting Zahra Fashion. We value your privacy and are committed to keeping your information safe.</p>
 `.trim(),
   },
 
   'terms-of-service': {
     title: 'Terms of Service',
     body: `
-<p>Welcome to Zahrah Fashion. These Terms of Service govern your use of our website and the purchase of our products. By accessing or using our website, you agree to be bound by these terms.</p>
+<p>Welcome to Zahra Fashion. These Terms of Service govern your use of our website and the purchase of our products. By accessing or using our website, you agree to be bound by these terms.</p>
 
 <h2>Orders</h2>
 <p>All orders are subject to product availability and our acceptance. While we strive to keep our inventory and pricing accurate, errors may occasionally occur. We reserve the right to refuse or cancel any order and issue a full refund if a product is unavailable, incorrectly priced, or cannot be fulfilled.</p>
@@ -89,7 +89,7 @@ export const STATIC_PAGES: Record<string, StaticPage> = {
   <li>Use the website for any unlawful or fraudulent purpose.</li>
   <li>Attempt to interfere with the security, performance, or operation of the website.</li>
   <li>Copy, reproduce, distribute, or use our content, images, logos, or trademarks without our written permission.</li>
-  <li>Violate the intellectual property rights of Zahrah Fashion or any third party.</li>
+  <li>Violate the intellectual property rights of Zahra Fashion or any third party.</li>
 </ul>
 
 <h2>Changes to These Terms</h2>
@@ -162,7 +162,7 @@ export const STATIC_PAGES: Record<string, StaticPage> = {
 <h2>Refunds</h2>
 <p>Once we receive and inspect your returned item, we'll let you know whether your refund has been approved.</p>
 <p>If approved, your refund will be processed to your original payment method within <strong>5–10 business days</strong>.</p>
-<p>Please note that delivery charges are non-refundable unless the return is the result of an incorrect, damaged, or defective item sent by Zahrah Fashion.</p>
+<p>Please note that delivery charges are non-refundable unless the return is the result of an incorrect, damaged, or defective item sent by Zahra Fashion.</p>
 <p><strong>Gift cards and store balance top-ups are non-refundable and cannot be exchanged for cash.</strong></p>
 
 <h2>Need Help?</h2>

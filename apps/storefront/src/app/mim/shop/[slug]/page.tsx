@@ -31,7 +31,7 @@ export default async function MimProductPage({ params }: { params: Promise<{ slu
     notFound();
   }
 
-  let storeName = 'Zahrah Fashion';
+  let storeName = 'Zahra Fashion';
   let mimEnabled = true;
   try {
     const ctx = await serverApi<{ store: { name: string }; mimEnabled?: boolean }>('/store/context');
