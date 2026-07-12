@@ -36,6 +36,23 @@ export class StoreCatalogService {
     return categories;
   }
 
+  /** Slugs + timestamps for the storefront sitemap.xml (SEO). */
+  async sitemapEntries() {
+    const [products, categories] = await Promise.all([
+      this.prisma.product.findMany({
+        where: { status: 'active', visibility: 'visible' },
+        select: { slug: true, updatedAt: true },
+        orderBy: { updatedAt: 'desc' },
+        take: 5000,
+      }),
+      this.prisma.category.findMany({
+        where: { status: 'active', slug: { not: 'lefe' } },
+        select: { slug: true, updatedAt: true },
+      }),
+    ]);
+    return { products, categories };
+  }
+
   private async categoryWithDescendants(categoryId: string): Promise<string[]> {
     const all = await this.prisma.category.findMany({ select: { id: true, parentId: true } });
     const ids = [categoryId];

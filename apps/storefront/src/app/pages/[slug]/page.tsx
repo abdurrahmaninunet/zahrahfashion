@@ -6,10 +6,11 @@ export const revalidate = 60;
 
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
-  if (STATIC_PAGES[slug]) return { title: STATIC_PAGES[slug].title };
+  const canonical = `/pages/${slug}`;
+  if (STATIC_PAGES[slug]) return { title: STATIC_PAGES[slug].title, alternates: { canonical } };
   try {
     const page = await serverApi<{ title: string }>(`/store/pages/${slug}`);
-    return { title: page.title };
+    return { title: page.title, alternates: { canonical } };
   } catch {
     return {};
   }

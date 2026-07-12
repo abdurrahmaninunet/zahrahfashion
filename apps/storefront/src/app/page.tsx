@@ -248,11 +248,11 @@ function TrustBand({ context, testimonials }: { context: StoreContext; testimoni
           {context.store.address ? (
             <p className="mt-2 text-sm text-stone-600">Visit us: {context.store.address}</p>
           ) : (
-            <p className="mt-2 text-sm text-stone-600">Shop online or visit our Lagos store.</p>
+            <p className="mt-2 text-sm text-stone-600">Shop online or visit our Abuja store.</p>
           )}
           {context.podAvailable && (
             <p className="mt-2 inline-flex items-center gap-1.5 rounded-full bg-emerald-50 px-3 py-1 text-sm font-medium text-emerald-800">
-              ✓ Pay on Delivery available across Lagos
+              ✓ Pay on Delivery available across Abuja
             </p>
           )}
           <p className="mt-3 text-xs text-stone-400">Secure payments via Paystack — card, bank & USSD · WhatsApp support all day</p>

@@ -7,6 +7,7 @@ export const revalidate = 300;
 export const metadata: Metadata = {
   title: 'Our shops',
   description: 'Visit Zahra Fashion in person — store locations, opening hours and contact details.',
+  alternates: { canonical: '/shops' },
 };
 
 interface ShopLocation {

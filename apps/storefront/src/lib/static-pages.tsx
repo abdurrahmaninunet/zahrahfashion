@@ -108,7 +108,7 @@ export const STATIC_PAGES: Record<string, StaticPage> = {
 <h2>Delivery Times</h2>
 <ul>
   <li><strong>Abuja:</strong> 1–2 business days</li>
-  <li><strong>Lagos &amp; other major cities:</strong> 2–4 business days</li>
+  <li><strong>Abuja &amp; other major cities:</strong> 2–4 business days</li>
   <li><strong>Rest of Nigeria:</strong> 3–6 business days</li>
 </ul>
 <p>Please note that delivery times are estimates and may vary due to weather, public holidays, or courier operations.</p>

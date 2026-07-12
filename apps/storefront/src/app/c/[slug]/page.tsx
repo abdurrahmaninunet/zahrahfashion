@@ -42,6 +42,7 @@ export async function generateMetadata({
     return {
       title: name,
       description: `Shop ${name} — pay with card, transfer or on delivery in Abuja.`,
+      alternates: { canonical: `/c/${slug}` },
     };
   } catch {
     return {};

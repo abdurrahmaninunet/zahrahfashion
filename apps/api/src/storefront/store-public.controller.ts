@@ -28,6 +28,12 @@ export class StorePublicController {
     private anko: AnkoService,
   ) {}
 
+  /** Slugs + timestamps for the storefront sitemap.xml (SEO). */
+  @Get('sitemap')
+  sitemap() {
+    return this.catalog.sitemapEntries();
+  }
+
   /** MIM homepage "ready to personalise" section — up to 3 curated MIM products.
    *  Returns enabled=false (and no products) when the MIM store is switched off. */
   @Get('mim/ready')

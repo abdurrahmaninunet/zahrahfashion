@@ -350,8 +350,8 @@ async function main() {
     'returns-policy': '<h2>Returns &amp; Refunds</h2><p>You may request a return within 7 days of delivery from your order page. Cut fabric (cut to your yardage) and opened perfumes/cosmetics are non-returnable. The original delivery fee is non-refundable unless the return is due to our error.</p>',
     'privacy-policy': '<h2>Privacy Policy</h2><p>We collect only what your order needs: your name, phone, delivery address and optional email. We never sell your data. Marketing messages are opt-in and you can withdraw consent anytime from your account.</p>',
     'terms-of-service': '<h2>Terms of Service</h2><p>All prices are in Nigerian Naira and confirmed at order time. Unpaid transfer orders are released after 24 hours.</p>',
-    'delivery-information': '<h2>Delivery Information</h2><p>We deliver across Lagos (1–2 days) and interstate via courier (3–5 days). Delivery fees are shown by zone at checkout.</p>',
-    'about-us': '<h2>About Us</h2><p>Zahrah Fashion brings premium fabrics and fragrances to Nigeria — shop online or visit our Lagos store.</p>',
+    'delivery-information': '<h2>Delivery Information</h2><p>We deliver across Abuja (1–2 days) and interstate via courier (3–5 days). Delivery fees are shown by zone at checkout.</p>',
+    'about-us': '<h2>About Us</h2><p>Zahra Fashion brings premium fabrics and fragrances to Nigeria — shop online or visit our Abuja store.</p>',
     'faq': '<h2>FAQ</h2><p><b>How do I pay?</b> Card/bank/USSD via Paystack, or bank transfer.</p><p><b>Where is my order?</b> Use the tracking link in your confirmation, or chat with us on WhatsApp.</p>',
     'contact': '<h2>Contact</h2><p>WhatsApp us via the chat button, Mon–Sat 9:00–19:00. We respond within 15 minutes in business hours.</p>',
   };
