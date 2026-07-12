@@ -257,7 +257,7 @@ function TodaysDealsTab() {
 
   if (isLoading || !loaded) return <Spinner />;
 
-  const invalid = men.length === 0 || women.length === 0;
+  const bothEmpty = men.length === 0 && women.length === 0;
 
   return (
     <div className="space-y-4">
@@ -267,9 +267,9 @@ function TodaysDealsTab() {
       </div>
       <ErrorNote error={error} />
       <div className="flex items-center gap-3">
-        <Button loading={save.isPending} disabled={invalid} onClick={() => save.mutate()}>Save &amp; publish</Button>
+        <Button loading={save.isPending} onClick={() => save.mutate()}>Save &amp; publish</Button>
         {item && <Badge color={statusColor(item.status)}>{item.status}</Badge>}
-        {invalid && <span className="text-xs text-amber-600">Pick at least one product for each panel.</span>}
+        {bothEmpty && <span className="text-xs text-stone-500">No products — Today&apos;s Deals will be hidden on the storefront.</span>}
         {save.isSuccess && !save.isPending && <span className="text-xs text-emerald-600">Saved ✓</span>}
       </div>
     </div>

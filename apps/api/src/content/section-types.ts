@@ -44,9 +44,11 @@ export const SECTION_TYPES: SectionType[] = [
     description: 'Two curated deal panels (Men & Women) with three products each.',
     fields: [
       { key: 'menTitle', label: 'Left panel title', type: 'text', required: true, maxLength: 40 },
-      { key: 'menProducts', label: 'Left products (up to 3)', type: 'product_list', required: true },
+      // Products optional: an empty panel is simply hidden on the storefront, so
+      // the owner can clear a panel (or both) to switch Today's Deals off.
+      { key: 'menProducts', label: 'Left products (up to 3)', type: 'product_list', required: false },
       { key: 'womenTitle', label: 'Right panel title', type: 'text', required: true, maxLength: 40 },
-      { key: 'womenProducts', label: 'Right products (up to 3)', type: 'product_list', required: true },
+      { key: 'womenProducts', label: 'Right products (up to 3)', type: 'product_list', required: false },
     ],
   },
   {
