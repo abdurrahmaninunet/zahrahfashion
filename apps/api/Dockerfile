@@ -31,11 +31,12 @@ WORKDIR /app/apps/api
 # API listens on $PORT (default 4000). Behind the ALB this is the target port.
 ENV PORT=4000
 EXPOSE 4000
-# On start: sync the schema to the DB (db push — the project has schema drift so
-# `migrate deploy` would miss columns like Customer.wishlist), seed the essentials
+# On start: best-effort sync the schema (db push — the project has schema drift so
+# `migrate deploy` would miss columns like Customer.wishlist) and seed the essentials
 # (roles, owner, zones, units — blank store unless SEED_DEMO=true), then boot.
-# Both db push and seed are idempotent. Keep the API at 1 task while this runs on
-# start; move schema/seed to a one-off task if you scale the API to many replicas.
-CMD ["sh", "-c", "npx prisma db push --skip-generate && npm run seed && node dist/main.js"]
+# CRITICAL: db push / seed must NOT gate the API. If db push hits a data-loss guard
+# (it refuses destructive changes non-interactively) the DB is still the last good
+# in-sync schema, so we log and boot anyway rather than crash-looping the whole API.
+CMD ["sh", "-c", "npx prisma db push --skip-generate || echo '[start] db push skipped (schema left as-is)'; npm run seed || echo '[start] seed skipped'; node dist/main.js"]
 
 
