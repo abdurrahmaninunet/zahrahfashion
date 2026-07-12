@@ -97,12 +97,6 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
       {mobileNav && <div className="fixed inset-0 z-30 bg-black/30 lg:hidden" onClick={() => setMobileNav(false)} />}
 
       <div className="flex min-w-0 flex-1 flex-col">
-        {/* Test-mode banner (Settings Business Rule 4) */}
-        {me.testMode && (
-          <div className="bg-amber-400 px-4 py-1 text-center text-xs font-semibold text-amber-950">
-            TEST MODE — payments are in Paystack test mode; no real money moves
-          </div>
-        )}
         {/* Topbar */}
         <header className="sticky top-0 z-20 flex h-14 items-center gap-3 border-b border-stone-200 bg-white/95 px-4 backdrop-blur">
           <button className="lg:hidden cursor-pointer" onClick={() => setMobileNav(true)}><Menu size={20} /></button>

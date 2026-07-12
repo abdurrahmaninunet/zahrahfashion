@@ -108,7 +108,7 @@ export function OwambeEdit({ categories = [], mimEnabled = true }: { categories?
 
       <div className="grid gap-6 lg:grid-cols-2">
         {/* ── Right (lg): brand promo + featured looks ───────────────── */}
-        <div className="overflow-hidden bg-accent-100 p-5 md:p-6 lg:order-2">
+        <div className="overflow-hidden bg-accent-100 p-4 sm:p-5 md:p-6 lg:order-2">
           <div className="flex flex-wrap items-center justify-between gap-4">
             <div>
               <p className="font-display text-3xl font-bold italic leading-none text-accent-900 md:text-4xl">MIM&apos;s ready.</p>
@@ -123,7 +123,7 @@ export function OwambeEdit({ categories = [], mimEnabled = true }: { categories?
             <Sparkles className="hidden shrink-0 text-accent-600/40 sm:block" size={72} strokeWidth={1.2} aria-hidden />
           </div>
 
-          <div className="mt-5 grid grid-cols-3 gap-3 md:gap-4">
+          <div className="mt-5 grid grid-cols-3 gap-2 sm:gap-3 md:gap-4">
             {FEATURED.map((f) => {
               const off = Math.round(((f.was - f.price) / f.was) * 100);
               return (

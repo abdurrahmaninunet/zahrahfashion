@@ -5,6 +5,7 @@ import { usePathname } from 'next/navigation';
 import { cn } from '@/components/ui';
 
 const SUB_NAV = [
+  { href: '/settings/profile', label: 'Store profile' },
   { href: '/settings', label: 'Store locations', exact: true },
   { href: '/settings/zones', label: 'Delivery rates' },
   { href: '/settings/tax', label: 'Tax' },

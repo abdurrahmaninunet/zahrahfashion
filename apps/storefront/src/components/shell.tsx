@@ -235,6 +235,30 @@ export function Header({ context }: { context: StoreContext }) {
           </div>
         </div>
 
+        {/* Mobile category strip — the desktop category bar (Row 2) is hidden on
+            phones, so surface the same nav here as a horizontal scroll so
+            categories stay reachable without opening the menu. */}
+        <div className="border-t border-stone-100 md:hidden">
+          <div className="scrollbar-none flex gap-2 overflow-x-auto px-4 py-2.5">
+            {inlineNav.map((item) => {
+              const itemPath = item.href.split('?')[0];
+              const active = itemPath === '/' ? pathname === '/' : pathname === itemPath || pathname.startsWith(`${itemPath}/`);
+              return (
+                <Link
+                  key={item.label}
+                  href={item.href}
+                  aria-current={active ? 'page' : undefined}
+                  className={`whitespace-nowrap rounded-full px-3.5 py-1.5 text-[13px] font-semibold transition-colors ${
+                    active ? 'bg-stone-900 text-white' : 'bg-stone-100 text-stone-700 hover:bg-stone-200'
+                  }`}
+                >
+                  {item.label}
+                </Link>
+              );
+            })}
+          </div>
+        </div>
+
         {/* Row 2 — All Categories + inline category nav */}
         <div className="hidden md:block">
           <div className="mx-auto flex max-w-[1905px] items-center gap-1 px-4 lg:px-[8rem]">

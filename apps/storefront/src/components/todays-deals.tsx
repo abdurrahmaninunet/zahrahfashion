@@ -88,10 +88,10 @@ function DealCard({ deal, priceClass }: { deal: Deal; priceClass: string }) {
 
 function DummyPanel({ title, pill, deals, priceClass }: { title: string; pill: React.ReactNode; deals: Deal[]; priceClass: string }) {
   return (
-    <div className="border-4 border-stone-400 p-5 md:p-6">
-      <h3 className="text-center text-xl font-bold md:text-2xl">{title}</h3>
+    <div className="border-2 border-stone-300 p-3 sm:border-4 sm:border-stone-400 sm:p-5 md:p-6">
+      <h3 className="text-center text-lg font-bold sm:text-xl md:text-2xl">{title}</h3>
       <div className="mt-3 flex justify-center">{pill}</div>
-      <div className="mt-5 grid grid-cols-3 gap-3 md:gap-4">
+      <div className="mt-4 grid grid-cols-3 gap-2 sm:mt-5 sm:gap-3 md:gap-4">
         {deals.map((d) => <DealCard key={d.name} deal={d} priceClass={priceClass} />)}
       </div>
     </div>
@@ -101,9 +101,9 @@ function DummyPanel({ title, pill, deals, priceClass }: { title: string; pill: R
 /** Panel of real, admin-curated products (rendered with the shared card). */
 function ProductPanel({ title, products }: { title: string; products: ProductCardData[] }) {
   return (
-    <div className="border-4 border-stone-400 p-5 md:p-6">
-      <h3 className="text-center text-xl font-bold md:text-2xl">{title}</h3>
-      <div className="mt-5 grid grid-cols-3 gap-3 md:gap-4">
+    <div className="border-2 border-stone-300 p-3 sm:border-4 sm:border-stone-400 sm:p-5 md:p-6">
+      <h3 className="text-center text-lg font-bold sm:text-xl md:text-2xl">{title}</h3>
+      <div className="mt-4 grid grid-cols-3 gap-2 sm:mt-5 sm:gap-3 md:gap-4">
         {products.slice(0, 3).map((p) => <ProductCard key={p.id} product={p} />)}
       </div>
     </div>
@@ -129,9 +129,9 @@ export function TodaysDeals({
   const live = (men?.length ?? 0) > 0 || (women?.length ?? 0) > 0;
 
   return (
-    <section className="mx-auto max-w-[1905px] px-4 py-10 lg:px-[8rem]">
-      <h2 className="mb-6 text-center font-display text-2xl font-bold md:text-3xl">Today&apos;s deals</h2>
-      <div className="grid gap-6 md:grid-cols-2">
+    <section className="mx-auto max-w-[1905px] px-4 py-8 md:py-10 lg:px-[8rem]">
+      <h2 className="mb-5 text-center font-display text-2xl font-bold md:mb-6 md:text-3xl">Today&apos;s deals</h2>
+      <div className="grid gap-4 sm:gap-6 md:grid-cols-2">
         {live ? (
           <>
             <ProductPanel title={menTitle} products={men ?? []} />

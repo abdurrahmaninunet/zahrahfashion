@@ -128,7 +128,7 @@ function DefaultHero({ categories }: { categories: StoreContext['categories'] })
         Fabrics that drape. Scents that linger.
       </h1>
       <p className="mx-auto mt-3 max-w-md text-stone-600">
-        Premium lace, ankara and perfumes — delivered across Nigeria. Pay with card, transfer, or on delivery in Lagos.
+        Premium lace, ankara and perfumes — delivered across Nigeria.
       </p>
       <div className="mt-6 flex flex-wrap justify-center gap-2">
         {categories.filter((c) => !c.parentId).slice(0, 4).map((c) => (
