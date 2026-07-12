@@ -14,9 +14,9 @@ export function Gallery({ media }: { media: { url: string; alt: string; type: st
   }
 
   return (
-    <div className="flex flex-col-reverse gap-3 sm:flex-row sm:gap-4">
+    <div className="flex min-w-0 flex-col-reverse gap-3 sm:flex-row sm:gap-4">
       {media.length > 1 && (
-        <div className="flex gap-2 overflow-x-auto sm:w-14 sm:flex-col sm:overflow-visible">
+        <div className="flex flex-wrap gap-2 sm:w-14 sm:flex-col sm:flex-nowrap">
           {media.map((m, i) => (
             <button
               key={i}

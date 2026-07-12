@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { ChevronRight } from 'lucide-react';
 import { serverApi } from '@/lib/api';
+import { ProductCard, type ProductCardData } from '@/components/product-card';
 import { BuyBox, PdpProduct } from './buy-box';
 import { Gallery } from './gallery';
 import { Reviews } from './reviews';
@@ -80,9 +81,36 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
         <BuyBox product={product!} storeName={storeName} />
       </div>
 
-      {/* Below the fold: ratings & reviews only */}
+      {/* Below the fold: ratings & reviews */}
       <Reviews productId={product!.id} slug={product!.slug} />
+
+      {/* Related products from the same category */}
+      <RelatedProducts categorySlug={product!.category.slug} currentId={product!.id} />
     </div>
+  );
+}
+
+/** Real related products — other items in the same category, current one excluded.
+ *  Renders nothing when there's nothing else to show. */
+async function RelatedProducts({ categorySlug, currentId }: { categorySlug: string; currentId: string }) {
+  let products: ProductCardData[] = [];
+  try {
+    const listing = await serverApi<{ products: ProductCardData[] }>(`/store/plp?category=${categorySlug}`, 60);
+    products = listing.products.filter((p) => p.id !== currentId).slice(0, 12);
+  } catch {
+    /* no related products */
+  }
+  if (!products.length) return null;
+
+  return (
+    <section className="mt-12 border-t border-stone-200 pt-8">
+      <h2 className="mb-4 font-display text-xl font-bold">Related products</h2>
+      <div className="grid grid-cols-2 gap-x-3 gap-y-6 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6">
+        {products.map((p) => (
+          <ProductCard key={p.id} product={p} />
+        ))}
+      </div>
+    </section>
   );
 }
 
