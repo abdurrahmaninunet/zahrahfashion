@@ -50,7 +50,7 @@ export function ProductCard({ product, priority, hrefBase }: { product: ProductC
 export function ProductRail({ title, products, viewAllHref }: { title: string; products: ProductCardData[]; viewAllHref?: string }) {
   if (!products.length) return null; // empty rails self-skip
   return (
-    <section className="mx-auto max-w-[1905px] px-2.5 lg:px-[8rem] py-6">
+    <section className="mx-auto max-w-[1905px] px-4 lg:px-[8rem] py-6">
       <div className="mb-3 flex items-baseline justify-between">
         <h2 className="font-display text-lg font-bold">{title}</h2>
         {viewAllHref && <Link href={viewAllHref} className="text-sm text-[#8a6d1f] hover:underline">View all →</Link>}

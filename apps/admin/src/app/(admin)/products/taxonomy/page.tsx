@@ -39,24 +39,38 @@ export default function TaxonomyPage() {
 function CategoriesTab() {
   const queryClient = useQueryClient();
   const [editing, setEditing] = useState<Category | 'new' | null>(null);
+  const [removing, setRemoving] = useState<Category | null>(null);
   const [error, setError] = useState<unknown>(null);
   const { data: categories, isLoading } = useQuery({ queryKey: ['categories'], queryFn: () => api.get<Category[]>('/categories') });
   const { data: units } = useQuery({ queryKey: ['units'], queryFn: () => api.get<Unit[]>('/units') });
   const { data: attributes } = useQuery({ queryKey: ['attributes'], queryFn: () => api.get<Attribute[]>('/attributes') });
 
+  const removeCategory = useMutation({
+    mutationFn: (id: string) => api.del<{ deleted?: boolean }>(`/categories/${id}`),
+    onSuccess: () => { setRemoving(null); queryClient.invalidateQueries({ queryKey: ['categories'] }); },
+    onError: (err) => { setRemoving(null); setError(err); },
+  });
+
   if (isLoading || !categories) return <Spinner />;
   const roots = categories.filter((c) => !c.parentId);
   const childrenOf = (id: string) => categories.filter((c) => c.parentId === id);
 
+  // A category can only be hard-deleted when nothing depends on it —
+  // no products of any status, and no subcategories.
+  const removingChildCount = removing ? childrenOf(removing.id).length : 0;
+  const removingProductCount = removing ? removing._count.products : 0;
+  const canRemove = removingChildCount === 0 && removingProductCount === 0;
+
   return (
     <div className="space-y-3">
+      <ErrorNote error={error} />
       <div className="flex justify-end"><Button size="sm" onClick={() => setEditing('new')}><Plus size={14} /> New category</Button></div>
       <div className="space-y-3">
         {roots.map((root) => {
           const children = childrenOf(root.id);
           return (
             <div key={root.id}>
-              <CategoryRow category={root} onEdit={setEditing} isRoot />
+              <CategoryRow category={root} onEdit={setEditing} onDelete={setRemoving} isRoot />
               {children.length > 0 && (
                 <div className="relative ml-5 mt-1 space-y-1 border-l border-stone-300 pl-9">
                   {children.map((child, i) => (
@@ -67,7 +81,7 @@ function CategoriesTab() {
                       {i === children.length - 1 && (
                         <span aria-hidden className="absolute -left-[37px] top-1/2 bottom-0 w-[2px] bg-stone-50" style={{ height: 'calc(50% + 0.25rem)' }} />
                       )}
-                      <CategoryRow category={child} onEdit={setEditing} />
+                      <CategoryRow category={child} onEdit={setEditing} onDelete={setRemoving} />
                     </div>
                   ))}
                 </div>
@@ -88,23 +102,62 @@ function CategoriesTab() {
           onError={setError}
         />
       )}
+      {removing && (
+        <Dialog open onClose={() => setRemoving(null)} title="Delete category">
+          <div className="space-y-4">
+            {canRemove ? (
+              <p className="text-sm text-stone-600">
+                Delete the category <b>{removing.name}</b>? This can&apos;t be undone.
+              </p>
+            ) : (
+              <>
+                <p className="text-sm text-stone-600">
+                  <b>{removing.name}</b> can&apos;t be deleted yet.
+                </p>
+                <p className="rounded-md bg-amber-50 px-3 py-2 text-xs text-amber-800">
+                  {removingProductCount > 0 && <>It still has {removingProductCount} product{removingProductCount === 1 ? '' : 's'} attached — reassign or remove {removingProductCount === 1 ? 'it' : 'them'} first. </>}
+                  {removingChildCount > 0 && <>It has {removingChildCount} subcategor{removingChildCount === 1 ? 'y' : 'ies'} — delete {removingChildCount === 1 ? 'it' : 'them'} first.</>}
+                </p>
+              </>
+            )}
+            <div className="flex justify-end gap-2">
+              <Button variant="outline" onClick={() => setRemoving(null)}>Cancel</Button>
+              {canRemove && (
+                <Button variant="danger" loading={removeCategory.isPending} onClick={() => removeCategory.mutate(removing.id)}>
+                  Delete category
+                </Button>
+              )}
+            </div>
+          </div>
+        </Dialog>
+      )}
     </div>
   );
 }
 
-function CategoryRow({ category, onEdit, isRoot }: { category: Category; onEdit: (c: Category) => void; isRoot?: boolean }) {
+function CategoryRow({ category, onEdit, onDelete, isRoot }: { category: Category; onEdit: (c: Category) => void; onDelete: (c: Category) => void; isRoot?: boolean }) {
   return (
-    <button
-      onClick={() => onEdit(category)}
-      className={`inline-flex w-fit items-center gap-2.5 rounded-md border bg-white px-3.5 text-left text-sm transition-colors hover:border-brand-400 hover:bg-brand-50/40 cursor-pointer ${
-        isRoot ? 'border-stone-300 py-2.5 shadow-sm' : 'border-stone-200 py-2'
-      }`}
-    >
-      {isRoot && <FolderOpen size={15} className="shrink-0 text-brand-600" />}
-      <span className={isRoot ? 'font-semibold' : 'font-medium'}>{category.name}</span>
-      {!category.returnEligible && <Badge color="amber">non-returnable</Badge>}
-      {category.status !== 'active' && <Badge color={statusColor(category.status)}>{category.status}</Badge>}
-    </button>
+    <div className="group inline-flex items-center gap-1">
+      <button
+        onClick={() => onEdit(category)}
+        className={`inline-flex w-fit items-center gap-2.5 rounded-md border bg-white px-3.5 text-left text-sm transition-colors hover:border-brand-400 hover:bg-brand-50/40 cursor-pointer ${
+          isRoot ? 'border-stone-300 py-2.5 shadow-sm' : 'border-stone-200 py-2'
+        }`}
+      >
+        {isRoot && <FolderOpen size={15} className="shrink-0 text-brand-600" />}
+        <span className={isRoot ? 'font-semibold' : 'font-medium'}>{category.name}</span>
+        {!category.returnEligible && <Badge color="amber">non-returnable</Badge>}
+        {category.status !== 'active' && <Badge color={statusColor(category.status)}>{category.status}</Badge>}
+      </button>
+      <button
+        aria-label={`Delete ${category.name}`}
+        title="Delete category"
+        className="hidden rounded p-1.5 text-stone-300 hover:bg-red-50 hover:text-red-600 group-hover:inline-flex cursor-pointer"
+        onClick={() => onDelete(category)}
+      >
+        <Trash2 size={14} />
+      </button>
+    </div>
   );
 }
 

@@ -87,7 +87,7 @@ export function OwambeEdit({ categories = [], mimEnabled = true }: { categories?
   // MIM off — the "MIM's ready" panel is hidden, so let the categories fill the row.
   if (!mimEnabled) {
     return (
-      <section className="mx-auto max-w-[1905px] px-2.5 py-10 lg:px-[8rem]">
+      <section className="mx-auto max-w-[1905px] px-4 py-10 lg:px-[8rem]">
         <div className="mb-6 text-center">
           <h2 className="font-display text-2xl font-bold md:text-3xl">Shop by Category</h2>
         </div>
@@ -101,7 +101,7 @@ export function OwambeEdit({ categories = [], mimEnabled = true }: { categories?
   }
 
   return (
-    <section className="mx-auto max-w-[1905px] px-2.5 py-10 lg:px-[8rem]">
+    <section className="mx-auto max-w-[1905px] px-4 py-10 lg:px-[8rem]">
       <div className="mb-6 text-center">
         <h2 className="font-display text-2xl font-bold md:text-3xl">Shop by Category</h2>
       </div>

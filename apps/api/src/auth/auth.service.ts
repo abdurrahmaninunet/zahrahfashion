@@ -128,7 +128,13 @@ export class AuthService implements OnModuleInit {
     await this.store.set(otpKey(pendingToken), { userId: user.id, code, expiresAt: now + LOGIN_OTP_TTL_MS, attempts: 0 }, LOGIN_OTP_TTL_MS / 1000);
     const sent = await this.deliverLoginOtp(user.email, code);
     await this.events.log({ userId: user.id, type: 'login_otp_sent', ip });
-    return { otpRequired: true as const, pendingToken, emailSent: sent };
+    return { otpRequired: true as const, pendingToken, emailSent: sent, ...this.devCode(code) };
+  }
+
+  /** In development only, expose the code to the client so it can be shown on the
+   *  login screen (no mailbox needed). Never returned in production. */
+  private devCode(code: string) {
+    return process.env.NODE_ENV !== 'production' ? { devCode: code } : {};
   }
 
   /** Email the login code. If it fails in a non-prod environment, also print it
@@ -151,7 +157,7 @@ export class AuthService implements OnModuleInit {
     const code = String(Math.floor(100_000 + Math.random() * 900_000));
     await this.store.set(key, { ...pending, code, expiresAt: Date.now() + LOGIN_OTP_TTL_MS, attempts: 0 }, LOGIN_OTP_TTL_MS / 1000);
     const sent = await this.deliverLoginOtp(user.email, code);
-    return { ok: true, emailSent: sent };
+    return { ok: true, emailSent: sent, ...this.devCode(code) };
   }
 
   /** Verify the emailed login code → create the session. */

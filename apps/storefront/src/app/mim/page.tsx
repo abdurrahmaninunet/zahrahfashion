@@ -28,7 +28,7 @@ export default async function MimStorePage() {
 
   if (!enabled) {
     return (
-      <div className="mx-auto max-w-[1905px] px-2.5 py-8 lg:px-[8rem]">
+      <div className="mx-auto max-w-[1905px] px-4 py-8 lg:px-[8rem]">
         <div className="rounded-2xl border border-dashed border-stone-300 bg-stone-50 px-6 py-24 text-center">
           <Shirt size={30} className="mx-auto text-stone-300" />
           <p className="mt-3 font-medium text-stone-700">MIM is currently unavailable</p>
@@ -40,7 +40,7 @@ export default async function MimStorePage() {
   }
 
   return (
-    <div className="mx-auto max-w-[1905px] px-2.5 py-8 lg:px-[8rem]">
+    <div className="mx-auto max-w-[1905px] px-4 py-8 lg:px-[8rem]">
       <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="font-display text-2xl font-bold md:text-3xl">MIM</h1>

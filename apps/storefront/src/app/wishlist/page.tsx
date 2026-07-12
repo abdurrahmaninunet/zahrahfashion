@@ -44,7 +44,7 @@ export default function WishlistPage() {
   }
 
   return (
-    <div className="mx-auto max-w-[1905px] px-2.5 py-8 lg:px-[8rem]">
+    <div className="mx-auto max-w-[1905px] px-4 py-8 lg:px-[8rem]">
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
         <h1 className="font-display text-2xl font-bold">
           My wishlist{ids.length > 0 && <span className="ml-2 text-base font-normal text-stone-400">{ids.length} {ids.length === 1 ? 'item' : 'items'}</span>}

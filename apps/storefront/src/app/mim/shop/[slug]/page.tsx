@@ -43,7 +43,7 @@ export default async function MimProductPage({ params }: { params: Promise<{ slu
   if (!mimEnabled) redirect('/mim');
 
   return (
-    <div className="mx-auto max-w-[1905px] px-2.5 py-4 lg:px-[8rem]">
+    <div className="mx-auto max-w-[1905px] px-4 py-4 lg:px-[8rem]">
       <nav className="mb-4 flex items-center gap-1.5 text-xs text-stone-500">
         <Link href="/mim" className="hover:text-stone-800 hover:underline">MIM</Link>
         <ChevronRight size={13} className="text-stone-300" />

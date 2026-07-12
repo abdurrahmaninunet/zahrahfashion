@@ -26,7 +26,7 @@ export async function MimReady() {
   if (!data || !data.enabled || !data.products.length) return null;
 
   return (
-    <section className="mx-auto max-w-[1905px] px-2.5 py-10 lg:px-[8rem]">
+    <section className="mx-auto max-w-[1905px] px-4 py-10 lg:px-[8rem]">
       <div className="mb-6 flex flex-wrap items-end justify-between gap-3">
         <div>
           <span className="inline-flex items-center gap-1.5 rounded-full bg-[#faf5e6] px-3 py-1 text-xs font-semibold uppercase tracking-[0.14em] text-[#8a6d1f]">

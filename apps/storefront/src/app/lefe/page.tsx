@@ -21,7 +21,7 @@ export default async function LefeStorePage() {
   }
 
   return (
-    <div className="mx-auto max-w-[1905px] px-2.5 py-8 lg:px-[8rem]">
+    <div className="mx-auto max-w-[1905px] px-4 py-8 lg:px-[8rem]">
       <div className="mb-6">
         <h1 className="font-display text-2xl font-bold md:text-3xl">Lefe</h1>
         <p className="mt-0.5 text-sm text-stone-500">Bridal gift sets — everything for the bride, curated and priced as one.</p>

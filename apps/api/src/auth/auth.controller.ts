@@ -38,7 +38,7 @@ export class AuthController {
   async login(@Body() body: unknown, @Req() req: AuthedRequest) {
     const { email, password } = parse(loginSchema, body);
     const result = await this.auth.login(email, password, req.ip ?? null, req.headers['user-agent'] ?? null);
-    return { otpRequired: true, pendingToken: result.pendingToken, emailSent: result.emailSent };
+    return { otpRequired: true, pendingToken: result.pendingToken, emailSent: result.emailSent, ...('devCode' in result ? { devCode: result.devCode } : {}) };
   }
 
   /** Resend the login code to the same pending sign-in. */

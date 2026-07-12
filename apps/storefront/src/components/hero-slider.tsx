@@ -54,7 +54,7 @@ export function HeroSlider({ slides, priority }: { slides: Slide[]; priority?: b
           <div
             key={i}
             aria-hidden={i !== index}
-            className={`absolute inset-0 grid grid-cols-1 content-center gap-4 px-2.5 pb-10 pt-6 transition-opacity duration-500 md:grid-cols-2 md:items-center md:gap-10 md:py-0 lg:px-[8rem] ${i === index ? 'opacity-100' : 'pointer-events-none opacity-0'}`}
+            className={`absolute inset-0 grid grid-cols-1 content-center gap-4 px-4 pb-10 pt-6 transition-opacity duration-500 md:grid-cols-2 md:items-center md:gap-10 md:py-0 lg:px-[8rem] ${i === index ? 'opacity-100' : 'pointer-events-none opacity-0'}`}
           >
             <div className="max-w-lg">
               {slide.headline && (

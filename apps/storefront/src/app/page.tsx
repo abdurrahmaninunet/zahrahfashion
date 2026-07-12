@@ -144,7 +144,7 @@ function DefaultHero({ categories }: { categories: StoreContext['categories'] })
 /** Category tiles (§3.3): 2-across mobile, express lane one flick from the top. */
 function CategoryTiles({ categories }: { categories: { id: string; name: string; slug: string; image?: string | null }[] }) {
   return (
-    <section className="mx-auto max-w-[1905px] px-2.5 lg:px-[8rem] py-8">
+    <section className="mx-auto max-w-[1905px] px-4 lg:px-[8rem] py-8">
       <div className="mb-4 flex items-baseline justify-between">
         <h2 className="font-display text-xl font-bold md:text-2xl">Shop by category</h2>
       </div>
@@ -183,7 +183,7 @@ function CategoryTilesFromFields({ fields, context }: { fields: Record<string, u
     .filter((t) => t.category);
   if (!resolved.length) return <CategoryTiles categories={context.categories.filter((c) => !c.parentId)} />;
   return (
-    <section className="mx-auto max-w-[1905px] px-2.5 lg:px-[8rem] py-6">
+    <section className="mx-auto max-w-[1905px] px-4 lg:px-[8rem] py-6">
       <div className="grid grid-cols-2 gap-3 md:grid-cols-5">
         {resolved.map((t) => (
           <Link key={t.categoryId} href={`/c/${t.category!.slug}`} className="media-box group relative flex aspect-[4/3] items-end rounded-xl md:aspect-[3/4]">
@@ -208,7 +208,7 @@ function BannerGrid({ fields }: { fields: Record<string, unknown> }) {
   if (!tiles.length) return null;
   const cols = Math.min(Number(fields.columns) || tiles.length, 4);
   return (
-    <section className="mx-auto max-w-[1905px] px-2.5 lg:px-[8rem] py-6">
+    <section className="mx-auto max-w-[1905px] px-4 lg:px-[8rem] py-6">
       <div className={`grid gap-3 ${cols === 1 ? '' : cols === 2 ? 'md:grid-cols-2' : cols === 3 ? 'md:grid-cols-3' : 'md:grid-cols-4'}`}>
         {tiles.map((tile, i) => {
           const inner = (
@@ -242,7 +242,7 @@ function BannerGrid({ fields }: { fields: Record<string, unknown> }) {
 function TrustBand({ context, testimonials }: { context: StoreContext; testimonials: { quote: string; name: string; location?: string }[] | null }) {
   return (
     <section className="mt-6 bg-white py-10">
-      <div className="mx-auto grid max-w-[1905px] gap-8 px-2.5 lg:px-[8rem] md:grid-cols-2">
+      <div className="mx-auto grid max-w-[1905px] gap-8 px-4 lg:px-[8rem] md:grid-cols-2">
         <div>
           <h2 className="font-display text-lg font-bold">A real store, real people</h2>
           {context.store.address ? (
@@ -275,7 +275,7 @@ function TrustBand({ context, testimonials }: { context: StoreContext; testimoni
 
 function Newsletter({ headline, subtext }: { headline?: string; subtext?: string }) {
   return (
-    <section className="mx-auto max-w-[1905px] px-2.5 lg:px-[8rem] py-8">
+    <section className="mx-auto max-w-[1905px] px-4 lg:px-[8rem] py-8">
       <div className="rounded-2xl bg-stone-900 px-6 py-8 text-center text-white">
         <h2 className="font-display text-lg font-bold">{headline || 'First to know when new lace lands'}</h2>
         {subtext && <p className="mt-1 text-sm text-stone-300">{subtext}</p>}

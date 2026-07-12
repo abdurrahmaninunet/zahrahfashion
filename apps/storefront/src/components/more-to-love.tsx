@@ -28,7 +28,7 @@ export async function MoreToLove() {
   const initialItems = live ? page1!.products.map(fromProduct) : FALLBACK;
 
   return (
-    <section className="mx-auto max-w-[1905px] px-2.5 py-10 lg:px-[8rem]">
+    <section className="mx-auto max-w-[1905px] px-4 py-10 lg:px-[8rem]">
       <h2 className="mb-6 text-center font-display text-2xl font-bold md:text-3xl">More to love</h2>
       <MoreToLoveFeed
         initialItems={initialItems}

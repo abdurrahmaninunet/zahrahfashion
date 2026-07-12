@@ -25,7 +25,7 @@ function SearchPageInner() {
   });
 
   return (
-    <div className="mx-auto max-w-[1905px] px-2.5 lg:px-[8rem] py-6">
+    <div className="mx-auto max-w-[1905px] px-4 lg:px-[8rem] py-6">
       {q.trim().length >= 2 ? (
         isLoading ? (
           <p className="py-12 text-center text-sm text-stone-400">Searching…</p>

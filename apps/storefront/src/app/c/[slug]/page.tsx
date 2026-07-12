@@ -84,7 +84,7 @@ export default async function CategoryPage({
   };
 
   return (
-    <div className="mx-auto max-w-[1905px] px-2.5 lg:px-[8rem] py-6">
+    <div className="mx-auto max-w-[1905px] px-4 lg:px-[8rem] py-6">
       {listing.products.length ? (
         <div className="grid grid-cols-2 gap-x-3 gap-y-6 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
           {listing.products.map((p, i) => <ProductCard key={p.id} product={p} priority={i < 4} />)}
@@ -118,7 +118,7 @@ function DummyCategory({ slug }: { slug: string }) {
     reviews: p.reviews,
   }));
   return (
-    <div className="mx-auto max-w-[1905px] px-2.5 py-6 lg:px-[8rem]">
+    <div className="mx-auto max-w-[1905px] px-4 py-6 lg:px-[8rem]">
       <TileFeed items={items} />
     </div>
   );

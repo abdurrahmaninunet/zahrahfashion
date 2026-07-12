@@ -114,13 +114,13 @@ export function Header({ context }: { context: StoreContext }) {
     <>
       <header className="sticky top-0 z-40 bg-white">
         {/* Row 1 — logo · search pill · utilities */}
-        <div className="mx-auto flex max-w-[1905px] flex-wrap items-center gap-x-4 gap-y-2 px-2.5 lg:px-[8rem] py-3">
+        <div className="mx-auto flex max-w-[1905px] flex-wrap items-center gap-x-4 gap-y-2 px-4 lg:px-[8rem] py-3">
           {/* Left zone — equal flex to keep the search centered */}
           <div className="flex flex-1 items-center gap-2">
             <button aria-label="Menu" className="-ml-2 p-2 md:hidden cursor-pointer" onClick={() => setMenuOpen(true)}>
               <Menu size={20} />
             </button>
-            <Link href="/" className="font-display text-[24px] font-bold uppercase tracking-[0.16em]">
+            <Link href="/" className="font-display whitespace-nowrap text-[17px] font-bold uppercase tracking-[0.08em] sm:text-[24px] sm:tracking-[0.16em]">
               {context.store.name || 'Zahrah'}
             </Link>
           </div>
@@ -237,7 +237,7 @@ export function Header({ context }: { context: StoreContext }) {
 
         {/* Row 2 — All Categories + inline category nav */}
         <div className="hidden md:block">
-          <div className="mx-auto flex max-w-[1905px] items-center gap-1 px-2.5 lg:px-[8rem]">
+          <div className="mx-auto flex max-w-[1905px] items-center gap-1 px-4 lg:px-[8rem]">
             <div ref={catsRef} className="relative py-2">
               <button
                 onClick={() => setCatsOpen((v) => !v)}
@@ -423,7 +423,7 @@ export function Footer({ context }: { context: StoreContext }) {
   if (wa) socials.push({ name: 'WhatsApp', href: wa, icon: socialIcon.whatsapp });
   return (
     <footer className="mt-16 bg-stone-950 text-stone-300">
-      <div className="mx-auto max-w-[1905px] px-2.5 lg:px-[8rem] pt-12">
+      <div className="mx-auto max-w-[1905px] px-4 lg:px-[8rem] pt-12">
         <p className="font-display text-3xl font-bold uppercase tracking-[0.22em] text-white md:text-5xl">
           {context.store.name || 'Zahrah'}
         </p>
@@ -431,7 +431,7 @@ export function Footer({ context }: { context: StoreContext }) {
           Fabrics that drape, scents that linger — delivered across Nigeria.
         </p>
       </div>
-      <div className="mx-auto grid max-w-[1905px] gap-8 px-2.5 lg:px-[8rem] py-10 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="mx-auto grid max-w-[1905px] gap-8 px-4 lg:px-[8rem] py-10 sm:grid-cols-2 lg:grid-cols-4">
         <div>
           <p className="mb-3 text-xs font-bold uppercase tracking-wider text-stone-400">Help</p>
           <Link href="/pages/delivery-information" className="block py-1 text-sm text-stone-400 transition-colors hover:text-white">Delivery information</Link>

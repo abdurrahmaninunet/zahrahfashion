@@ -30,7 +30,7 @@ export default async function ContentPage({ params }: { params: Promise<{ slug: 
   if (page!.redirect) redirect(`/pages/${page!.redirect}`); // D-30
 
   return (
-    <article className="mx-auto max-w-[1905px] px-2.5 py-10 lg:px-[8rem]">
+    <article className="mx-auto max-w-[1905px] px-4 py-10 lg:px-[8rem]">
       <div className="max-w-3xl text-left">
         <h1 className="font-display text-2xl font-bold md:text-3xl">{page!.title}</h1>
         {page!.body ? (

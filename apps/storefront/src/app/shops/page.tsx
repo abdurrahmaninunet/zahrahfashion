@@ -30,7 +30,7 @@ export default async function ShopsPage() {
   }
 
   return (
-    <div className="mx-auto max-w-[1905px] px-2.5 py-12 lg:px-[8rem]">
+    <div className="mx-auto max-w-[1905px] px-4 py-12 lg:px-[8rem]">
       <h1 className="font-display text-3xl font-bold md:text-4xl">Our shops</h1>
       <p className="mt-2 text-stone-500">Come see and feel the fabrics in person — here&apos;s where to find us.</p>
 

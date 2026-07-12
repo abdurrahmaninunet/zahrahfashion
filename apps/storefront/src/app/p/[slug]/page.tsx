@@ -63,7 +63,7 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
   };
 
   return (
-    <div className="mx-auto max-w-[1905px] px-2.5 py-4 lg:px-[8rem]">
+    <div className="mx-auto max-w-[1905px] px-4 py-4 lg:px-[8rem]">
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
 
       {/* Breadcrumb */}

@@ -6,7 +6,7 @@ import { api, ApiError } from '@/lib/api';
 import { Button, Input, Field, ErrorNote } from '@/components/ui';
 import { useAuth } from '@/lib/auth';
 
-interface OtpResult { pendingToken: string; emailSent?: boolean }
+interface OtpResult { pendingToken: string; emailSent?: boolean; devCode?: string }
 
 export default function LoginPage() {
   const router = useRouter();
@@ -16,13 +16,15 @@ export default function LoginPage() {
   const [pendingToken, setPendingToken] = useState<string | null>(null);
   const [code, setCode] = useState('');
   const [emailSent, setEmailSent] = useState(true);
+  const [devCode, setDevCode] = useState<string | null>(null);
   const [error, setError] = useState<unknown>(null);
   const [loading, setLoading] = useState(false);
   const [resending, setResending] = useState(false);
   const [resent, setResent] = useState(false);
 
-  function applyDelivery(r: { emailSent?: boolean }) {
+  function applyDelivery(r: { emailSent?: boolean; devCode?: string }) {
     setEmailSent(r.emailSent !== false);
+    setDevCode(r.devCode ?? null);
   }
 
   async function submit(e: React.FormEvent) {
@@ -84,6 +86,11 @@ export default function LoginPage() {
               ) : (
                 <p className="text-xs text-red-600">We couldn&apos;t send the email. Tap &ldquo;Resend code&rdquo; to try again.</p>
               )}
+              {devCode && (
+                <div className="mt-1 rounded-md bg-amber-50 px-3 py-1.5 text-xs text-amber-800">
+                  Dev only — your code is <b className="font-mono text-sm tracking-wider">{devCode}</b>
+                </div>
+              )}
               {resent && <p className="text-xs text-emerald-600">A new code was sent.</p>}
             </>
           ) : (
@@ -103,7 +110,7 @@ export default function LoginPage() {
           {pendingToken && (
             <div className="flex items-center justify-between text-xs">
               <button type="button" className="text-stone-500 hover:underline cursor-pointer"
-                onClick={() => { setPendingToken(null); setCode(''); setError(null); }}>
+                onClick={() => { setPendingToken(null); setCode(''); setDevCode(null); setError(null); }}>
                 Back to password
               </button>
               <button type="button" disabled={resending} className="font-medium text-brand-600 hover:underline disabled:opacity-50 cursor-pointer" onClick={resend}>
