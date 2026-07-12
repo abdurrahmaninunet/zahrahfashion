@@ -52,7 +52,11 @@ body {
   animation: marquee-kf 28s linear infinite;
 }
 
-/* Auth slide-over */
+/* Auth panel — bottom sheet on mobile, left slide-over on desktop */
+@keyframes auth-sheet-up {
+  from { transform: translateY(100%); }
+  to { transform: translateY(0); }
+}
 @keyframes drawer-slide-in {
   from { transform: translateX(-100%); }
   to { transform: translateX(0); }
@@ -61,7 +65,11 @@ body {
   from { opacity: 0; }
   to { opacity: 1; }
 }
-.drawer-slide-in { animation: drawer-slide-in 0.3s ease-out both; }
+/* Default (mobile): rise up from the bottom. Desktop: slide in from the left. */
+.drawer-slide-in { animation: auth-sheet-up 0.34s cubic-bezier(0.22, 1, 0.36, 1) both; }
+@media (min-width: 640px) {
+  .drawer-slide-in { animation: drawer-slide-in 0.3s ease-out both; }
+}
 .drawer-fade-in { animation: drawer-fade-in 0.3s ease both; }
 
 @media (prefers-reduced-motion: reduce) {

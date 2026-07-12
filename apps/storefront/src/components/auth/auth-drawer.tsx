@@ -40,21 +40,27 @@ export function AuthDrawer() {
       {/* Backdrop (under the header, which stays visible on top) */}
       <div onClick={closeAuthDrawer} className="drawer-fade-in absolute inset-0 bg-black/40" />
 
-      {/* Panel — slides in from the left, 60% on desktop. Its resting position
-          is left-0; the keyframe only adds the entrance slide. */}
+      {/* Panel — a bottom sheet on mobile (rises from the bottom, rounded top,
+          grab handle) and a left slide-over on desktop (60% width). The
+          `drawer-slide-in` keyframe swaps slide direction at the sm breakpoint. */}
       <aside
         role="dialog"
         aria-modal="true"
         aria-label="Sign in or create an account"
-        className="drawer-slide-in absolute inset-y-0 left-0 w-[92%] overflow-y-auto border-r border-stone-200 bg-white shadow-2xl sm:w-[60%]"
+        className="drawer-slide-in absolute inset-x-0 bottom-0 max-h-[90dvh] w-full overflow-y-auto rounded-t-2xl bg-white shadow-2xl sm:inset-x-auto sm:inset-y-0 sm:left-0 sm:right-auto sm:max-h-none sm:w-[60%] sm:rounded-t-none sm:border-r sm:border-stone-200"
       >
-        <div className="flex min-h-full items-center justify-center p-4">
+        {/* Grab handle — mobile affordance for a bottom sheet; hidden on desktop. */}
+        <div className="sticky top-0 z-10 flex justify-center bg-white pt-3 sm:hidden">
+          <span className="h-1.5 w-11 rounded-full bg-stone-300" />
+        </div>
+
+        <div className="flex justify-center px-4 pb-[max(2rem,env(safe-area-inset-bottom))] pt-6 sm:min-h-full sm:items-center sm:p-4">
           <div className="relative w-full max-w-sm">
             <button
               type="button"
               onClick={closeAuthDrawer}
               aria-label="Close"
-              className="absolute -top-2 right-0 z-10 flex h-9 w-9 items-center justify-center rounded-full text-stone-500 transition-colors hover:bg-stone-100 hover:text-stone-900"
+              className="absolute -top-3 right-0 z-10 flex h-9 w-9 items-center justify-center rounded-full text-stone-500 transition-colors hover:bg-stone-100 hover:text-stone-900 sm:-top-2"
             >
               <X size={18} />
             </button>
