@@ -2,7 +2,6 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { ChevronRight } from 'lucide-react';
 import { serverApi } from '@/lib/api';
-import { ProductTile } from '@/components/product-tile';
 import { BuyBox, PdpProduct } from './buy-box';
 import { Gallery } from './gallery';
 import { Reviews } from './reviews';
@@ -83,49 +82,7 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
 
       {/* Below the fold: ratings & reviews only */}
       <Reviews productId={product!.id} slug={product!.slug} />
-
-      {/* Related products */}
-      <RelatedProducts />
     </div>
   );
 }
 
-// Dummy related products (placeholder — swap for a real recommendations feed). Prices in kobo.
-const RELATED = [
-  { name: 'Swiss Voile Lace — Emerald, 5 Yards', price: 4_500_000, compareAt: 5_200_000, bg: 'from-emerald-100 to-emerald-200' },
-  { name: 'French Corded Lace — Blush Pink', price: 3_800_000, compareAt: null, bg: 'from-rose-100 to-rose-200' },
-  { name: 'Beaded Bridal Lace — Ivory', price: 6_200_000, compareAt: 7_400_000, bg: 'from-stone-100 to-stone-200' },
-  { name: 'Adire Eleko Fabric — Indigo', price: 2_950_000, compareAt: null, bg: 'from-blue-100 to-indigo-200' },
-  { name: 'Atampa Ankara Wax — 6 Yards', price: 1_850_000, compareAt: 2_400_000, bg: 'from-amber-100 to-orange-200' },
-  { name: 'George Wrapper — Wine & Gold', price: 8_900_000, compareAt: 10_500_000, bg: 'from-fuchsia-100 to-rose-200' },
-  { name: 'Oud Royale Eau de Parfum — 50ml', price: 2_780_000, compareAt: 4_600_000, bg: 'from-yellow-100 to-amber-200' },
-  { name: 'Sequined Net Lace — Champagne Gold', price: 5_400_000, compareAt: null, bg: 'from-amber-50 to-yellow-100' },
-  { name: 'Aso-Oke Gele & Fila Set — Bronze', price: 3_200_000, compareAt: 3_900_000, bg: 'from-orange-100 to-amber-200' },
-  { name: 'Cord Lace — Royal Blue, 5 Yards', price: 4_100_000, compareAt: null, bg: 'from-blue-100 to-sky-200' },
-  { name: 'Hand-beaded Clutch — Pearl', price: 2_450_000, compareAt: 3_100_000, bg: 'from-stone-100 to-rose-100' },
-  { name: 'Chiffon Silk Fabric — Teal, 4 Yards', price: 1_650_000, compareAt: null, bg: 'from-teal-100 to-emerald-200' },
-];
-
-function RelatedProducts() {
-  return (
-    <section className="mt-12 border-t border-stone-200 pt-8">
-      <h2 className="mb-4 font-display text-xl font-bold">Related products</h2>
-      <div className="scrollbar-none -mx-4 flex snap-x gap-3 overflow-x-auto px-4 md:mx-0 md:grid md:grid-cols-4 md:gap-4 md:overflow-visible md:px-0 lg:grid-cols-6">
-        {RELATED.map((p) => (
-          <div key={p.name} className="w-[54vw] shrink-0 snap-start md:w-auto">
-            <ProductTile
-              item={{
-                id: p.name,
-                name: p.name,
-                href: `/search?q=${encodeURIComponent(p.name.split(' —')[0])}`,
-                bg: p.bg,
-                price: p.price,
-                compareAt: p.compareAt,
-              }}
-            />
-          </div>
-        ))}
-      </div>
-    </section>
-  );
-}

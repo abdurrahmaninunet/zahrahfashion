@@ -4,12 +4,10 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { api } from '@/lib/api';
 import type { ProductCardData } from '@/components/product-card';
 import { ProductTile } from '@/components/product-tile';
-import { FALLBACK, fromProduct, type LoveItem } from './more-to-love-data';
+import { fromProduct, type LoveItem } from './more-to-love-data';
 
 /** Scroll-triggered auto-loads before the feed switches to a manual button. */
 const AUTO_LOADS = 3;
-/** Page cap for the illustrative demo when the live catalogue is too small. */
-const DEMO_PAGES = 6;
 
 interface PlpPage {
   products: ProductCardData[];
@@ -24,21 +22,17 @@ interface PlpPage {
  */
 export function MoreToLoveFeed({
   initialItems,
-  live,
   total,
   pageSize,
 }: {
   initialItems: LoveItem[];
-  live: boolean;
   total: number;
   pageSize: number;
 }) {
   const [items, setItems] = useState<LoveItem[]>(initialItems);
   const [loading, setLoading] = useState(false);
   const [autoLoads, setAutoLoads] = useState(0);
-  const [done, setDone] = useState<boolean>(() =>
-    live ? total > 0 && initialItems.length >= total : false,
-  );
+  const [done, setDone] = useState<boolean>(() => total > 0 && initialItems.length >= total);
   const pageRef = useRef(1);
   const sentinelRef = useRef<HTMLDivElement | null>(null);
 
@@ -48,35 +42,23 @@ export function MoreToLoveFeed({
     setLoading(true);
     const next = pageRef.current + 1;
     try {
-      if (live) {
-        const data = await api.get<PlpPage>(`/store/plp?page=${next}`);
-        pageRef.current = next;
-        const mapped = data.products.map(fromProduct);
-        setItems((prev) => {
-          const seen = new Set(prev.map((i) => i.id));
-          return [...prev, ...mapped.filter((m) => !seen.has(m.id))];
-        });
-        const size = data.pageSize || pageSize || data.products.length;
-        if (!data.products.length || (data.total && next * size >= data.total)) {
-          setDone(true);
-        }
-      } else {
-        // Demo mode (catalogue too small): synthesize pages from the
-        // illustrative set so the load-more UX is exercised end to end.
-        await new Promise((r) => setTimeout(r, 450));
-        pageRef.current = next;
-        setItems((prev) => [
-          ...prev,
-          ...FALLBACK.map((it, idx) => ({ ...it, id: `${it.id}-p${next}-${idx}` })),
-        ]);
-        if (next >= DEMO_PAGES) setDone(true);
+      const data = await api.get<PlpPage>(`/store/plp?page=${next}`);
+      pageRef.current = next;
+      const mapped = data.products.map(fromProduct);
+      setItems((prev) => {
+        const seen = new Set(prev.map((i) => i.id));
+        return [...prev, ...mapped.filter((m) => !seen.has(m.id))];
+      });
+      const size = data.pageSize || pageSize || data.products.length;
+      if (!data.products.length || (data.total && next * size >= data.total)) {
+        setDone(true);
       }
     } catch {
       setDone(true); // stop trying on error — never spin forever
     } finally {
       setLoading(false);
     }
-  }, [live, pageSize]);
+  }, [pageSize]);
 
   // Auto-load while the sentinel is visible, up to AUTO_LOADS times. Re-creating
   // the observer when loading settles lets it re-fire if the user is parked at

@@ -2,9 +2,6 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { serverApi } from "@/lib/api";
 import { ProductCard, ProductCardData } from "@/components/product-card";
-import type { ProductTileData } from "@/components/product-tile";
-import { TileFeed } from "@/components/tile-feed";
-import { DUMMY_PLP } from "@/lib/dummy-plp";
 
 export const revalidate = 60;
 
@@ -41,13 +38,12 @@ export async function generateMetadata({
   const { slug } = await params;
   try {
     const listing = await serverApi<Listing>(`/store/plp?category=${slug}`);
-    const name = listing.category?.name ?? DUMMY_PLP[slug]?.name ?? "Shop";
+    const name = listing.category?.name ?? "Shop";
     return {
       title: name,
       description: `Shop ${name} — pay with card, transfer or on delivery in Abuja.`,
     };
   } catch {
-    if (DUMMY_PLP[slug]) return { title: DUMMY_PLP[slug].name };
     return {};
   }
 }
@@ -64,14 +60,12 @@ export default async function CategoryPage({
   const query = await searchParams;
 
   const apiQuery = new URLSearchParams({ category: slug });
-  let hasQuery = false;
   for (const [key, value] of Object.entries(query)) {
     if (
       key.startsWith("f_") ||
       ["sort", "page", "priceMin", "priceMax"].includes(key)
     ) {
       apiQuery.set(key, value);
-      hasQuery = true;
     }
   }
 
@@ -82,11 +76,6 @@ export default async function CategoryPage({
     listing = null;
   }
 
-  // Real stock always wins. Demo categories (Fabric, Laces, Perfumes, Caps) fall
-  // back to illustrative placeholders only when the live catalogue has nothing to
-  // show for them — an empty *base* listing (no filters) or the API being down.
-  const emptyBase = !hasQuery && (!listing || listing.products.length === 0);
-  if (emptyBase && DUMMY_PLP[slug]) return <DummyCategory slug={slug} />;
   if (!listing) notFound();
 
   const makeHref = (patch: Record<string, string | null>) => {
@@ -134,27 +123,6 @@ export default async function CategoryPage({
           )}
         </div>
       )}
-    </div>
-  );
-}
-
-/** Placeholder category listing — gradient tiles until real stock is added. */
-function DummyCategory({ slug }: { slug: string }) {
-  const { products } = DUMMY_PLP[slug];
-  const items: ProductTileData[] = products.map((p) => ({
-    id: p.id,
-    name: p.name,
-    href: `/search?q=${encodeURIComponent(p.name.split(" —")[0])}`,
-    bg: p.bg,
-    price: p.price,
-    compareAt: p.compareAt,
-    badge: p.badge,
-    rating: p.rating,
-    reviews: p.reviews,
-  }));
-  return (
-    <div className="mx-auto max-w-[1905px] px-4 py-6 lg:px-[8rem]">
-      <TileFeed items={items} />
     </div>
   );
 }

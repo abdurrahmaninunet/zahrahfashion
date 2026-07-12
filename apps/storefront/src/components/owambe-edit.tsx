@@ -7,10 +7,8 @@ import {
   ShoppingBag,
   Sparkles,
   SprayCan,
-  Star,
   type LucideIcon,
 } from 'lucide-react';
-import { naira } from '@/lib/format';
 
 type Category = { id: string; name: string; slug: string; parentId: string | null; image?: string | null };
 
@@ -23,22 +21,6 @@ const CATEGORIES: { label: string; icon: LucideIcon }[] = [
   { label: 'Cosmetics', icon: Brush },
   { label: 'Perfumes', icon: SprayCan },
   { label: 'Shoes', icon: Footprints },
-];
-
-// Featured trio for the promo panel. Prices in kobo (see lib/format).
-interface Featured {
-  name: string;
-  slug: string;
-  price: number;
-  was: number;
-  bg: string;
-  rating: number;
-  sold: string;
-}
-const FEATURED: Featured[] = [
-  { name: 'Beaded Bridal Lace Wrapper Set', slug: 'beaded-bridal-lace-wrapper-set', price: 4_687_852, was: 5_141_055, bg: 'from-stone-200 to-stone-300', rating: 5.0, sold: '126 sold' },
-  { name: 'Flowing Kaftan Boubou — Cream', slug: 'flowing-kaftan-boubou-cream', price: 3_353_704, was: 4_532_033, bg: 'from-amber-100 to-amber-200', rating: 4.6, sold: '1,000+ sold' },
-  { name: 'Printed Adire Kimono Robe — Olive', slug: 'printed-adire-kimono-robe-olive', price: 1_410_973, was: 2_868_777, bg: 'from-emerald-100 to-emerald-200', rating: 4.9, sold: '600+ sold' },
 ];
 
 /** Resolve a display label to a real category link, else a search fallback
@@ -121,39 +103,6 @@ export function OwambeEdit({ categories = [], mimEnabled = true }: { categories?
               </Link>
             </div>
             <Sparkles className="hidden shrink-0 text-accent-600/40 sm:block" size={72} strokeWidth={1.2} aria-hidden />
-          </div>
-
-          <div className="mt-5 grid grid-cols-3 gap-2 sm:gap-3 md:gap-4">
-            {FEATURED.map((f) => {
-              const off = Math.round(((f.was - f.price) / f.was) * 100);
-              return (
-                <Link
-                  key={f.slug}
-                  href={`/p/${f.slug}`}
-                  className="group flex flex-col overflow-hidden bg-white transition-shadow hover:shadow-md"
-                >
-                  <div className={`media-box aspect-square bg-gradient-to-br ${f.bg}`}>
-                    <span className="absolute left-0 top-0 z-10 bg-[#c02b2b] px-1.5 py-0.5 text-[11px] font-bold text-white">−{off}%</span>
-                    <span className="absolute inset-0 flex items-center justify-center font-display text-2xl font-bold text-white/70 transition-transform duration-300 group-hover:scale-105">
-                      {f.name.split(' ')[0]}
-                    </span>
-                  </div>
-                  <div className="flex flex-1 flex-col p-2.5">
-                    <p className="line-clamp-2 min-h-[2.4rem] text-[13px] leading-snug text-stone-700 group-hover:text-stone-950">{f.name}</p>
-                    <div className="mt-1.5 flex items-baseline gap-1.5">
-                      <span className="tabular text-base font-bold text-stone-900">{naira(f.price)}</span>
-                      <span className="text-[11px] text-stone-400 line-through">{naira(f.was)}</span>
-                    </div>
-                    <p className="mt-1 flex items-center gap-1 text-[11px] text-stone-500">
-                      <Star size={11} className="fill-amber-400 text-amber-400" />
-                      <b className="text-stone-800">{f.rating.toFixed(1)}</b>
-                      <span className="text-stone-300">|</span>
-                      {f.sold}
-                    </p>
-                  </div>
-                </Link>
-              );
-            })}
           </div>
         </div>
 

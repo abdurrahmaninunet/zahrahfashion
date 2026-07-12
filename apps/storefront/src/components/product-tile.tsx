@@ -9,7 +9,6 @@ import {
   ShoppingCart,
   Star,
   Trash2,
-  Truck,
 } from "lucide-react";
 import { naira } from "@/lib/format";
 import { lineKey, useCart } from "@/lib/cart";
@@ -123,12 +122,6 @@ export function ProductTile({ item }: { item: ProductTileData }) {
           {item.badge && (
             <span className="absolute left-0 top-0 z-10 bg-[#8a6d1f] px-1.5 py-0.5 text-[11px] font-bold uppercase tracking-wide text-white">
               {item.badge}
-            </span>
-          )}
-
-          {!item.soldOut && (
-            <span className="absolute inset-x-0 bottom-0 z-[5] flex items-center gap-1 bg-[#8a6d1f] px-2 py-1 text-[11px] font-semibold text-white">
-              <Truck size={12} /> Free delivery in Abuja
             </span>
           )}
 
