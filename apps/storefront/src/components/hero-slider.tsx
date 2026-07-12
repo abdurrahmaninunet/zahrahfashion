@@ -61,9 +61,9 @@ export function HeroSlider({ slides, priority }: { slides: Slide[]; priority?: b
                 <h2 className="font-display text-3xl font-bold leading-tight text-stone-900 md:text-5xl">{slide.headline}</h2>
               )}
               {slide.subtext && <p className="mt-3 text-stone-600 md:text-lg">{slide.subtext}</p>}
-              {slide.ctaLabel && urlOf(slide.link) && (
+              {slide.ctaLabel && (
                 <Link
-                  href={urlOf(slide.link)!}
+                  href={urlOf(slide.link) || '/'}
                   className="mt-6 inline-block rounded-sm bg-stone-900 px-9 py-3 text-sm font-semibold text-white transition-colors hover:bg-stone-700"
                 >
                   {slide.ctaLabel}
