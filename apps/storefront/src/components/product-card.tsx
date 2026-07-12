@@ -18,6 +18,10 @@ export interface ProductCardData {
   onlyLeft: number | null;
   /** Live available stock — caps the add-to-cart stepper. */
   maxAvailable?: number;
+  /** Real review rating — null when the product has no visible reviews. */
+  rating: number | null;
+  /** Number of visible reviews. */
+  reviews: number;
   swatches: string[];
   /** Set only for simple single-variant products that can be added directly. */
   variantId?: string | null;
@@ -40,6 +44,8 @@ export function toTile(product: ProductCardData, priority?: boolean, hrefBase = 
     variantId: product.variantId ?? null,
     unitName: product.unitName,
     maxAvailable: product.maxAvailable,
+    rating: product.rating ?? undefined,
+    reviews: product.reviews,
     priority,
   };
 }

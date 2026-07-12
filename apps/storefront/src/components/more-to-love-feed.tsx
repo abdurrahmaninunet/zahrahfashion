@@ -101,6 +101,7 @@ export function MoreToLoveFeed({
               savings: item.savings,
               onlyLeft: item.onlyLeft,
               rating: item.rating,
+              reviews: item.reviews,
               sold: item.sold,
               soldOut: item.soldOut,
               variantId: item.variantId ?? null,

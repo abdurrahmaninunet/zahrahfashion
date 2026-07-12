@@ -64,6 +64,8 @@ export class StoreCatalogService {
   }>[]) {
     const allVariants = products.flatMap((p) => p.variants.filter((v) => v.status === 'active'));
     const availability = await this.availabilityByVariant(allVariants.map((v) => v.id));
+    // Real review ratings for every card (products with no reviews are absent).
+    const ratings = await this.reviews.summaryMany(products.map((p) => p.id));
     const display = await this.discounts.priceForDisplay(
       allVariants.map((v) => {
         const p = products.find((x) => x.id === v.productId)!;
@@ -136,6 +138,9 @@ export class StoreCatalogService {
         soldOut: false,
         onlyLeft: available <= threshold ? available : null, // S-D-01
         maxAvailable: available, // stepper cap — quantity can't exceed live stock
+        // Real ratings — null/0 when the product has no visible reviews yet.
+        rating: ratings.get(p.id)?.average ?? null,
+        reviews: ratings.get(p.id)?.count ?? 0,
         swatches: this.swatches(p),
       });
     }

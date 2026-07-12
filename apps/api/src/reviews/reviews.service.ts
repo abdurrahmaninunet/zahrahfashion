@@ -1,4 +1,5 @@
 import { BadRequestException, Injectable, OnModuleInit } from '@nestjs/common';
+import { Prisma } from '@prisma/client';
 import { randomUUID } from 'crypto';
 import { PrismaService } from '../prisma/prisma.service';
 
@@ -44,6 +45,23 @@ export class ReviewsService implements OnModuleInit {
       FROM product_reviews WHERE product_id = ${productId} AND status = 'visible'`;
     const count = Number(rows[0]?.count ?? 0);
     return { count, average: count ? Number((rows[0].avg ?? 0).toFixed(2)) : 0 };
+  }
+
+  /** Batch visible-rating aggregate for many products (PLP/rail cards). Products
+   *  with no visible reviews are simply absent from the map. */
+  async summaryMany(productIds: string[]): Promise<Map<string, { average: number; count: number }>> {
+    const map = new Map<string, { average: number; count: number }>();
+    if (!productIds.length) return map;
+    const rows = await this.prisma.$queryRaw<{ product_id: string; count: bigint; avg: number | null }[]>`
+      SELECT product_id, COUNT(*)::bigint AS count, AVG(rating)::float AS avg
+      FROM product_reviews
+      WHERE product_id IN (${Prisma.join(productIds)}) AND status = 'visible'
+      GROUP BY product_id`;
+    for (const r of rows) {
+      const count = Number(r.count);
+      map.set(r.product_id, { count, average: count ? Number((r.avg ?? 0).toFixed(2)) : 0 });
+    }
+    return map;
   }
 
   /** Visible reviews + summary + star distribution, for the storefront. */

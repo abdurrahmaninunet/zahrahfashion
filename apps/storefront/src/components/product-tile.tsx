@@ -62,7 +62,9 @@ export function ProductTile({ item }: { item: ProductTileData }) {
   // Show "Save ₦X" whenever there's a crossed-out price (or an explicit savings).
   const savings =
     item.savings ?? (discounted ? item.compareAt! - item.price : 0);
-  const rating = item.rating ?? 4.8;
+  // Real ratings only — no reviews yet shows an honest "No ratings" state.
+  const hasReviews = (item.reviews ?? 0) > 0;
+  const rating = item.rating ?? 0;
 
   function addToCart(e: React.MouseEvent) {
     e.preventDefault();
@@ -165,32 +167,34 @@ export function ProductTile({ item }: { item: ProductTileData }) {
           {item.name}
         </Link>
 
-        {/* Star rating */}
+        {/* Star rating — real reviews only */}
         <div className="mt-1 flex items-center gap-1">
           <span
             className="flex items-center"
-            aria-label={`${rating.toFixed(1)} out of 5 stars`}
+            aria-label={hasReviews ? `${rating.toFixed(1)} out of 5 stars` : "No ratings yet"}
           >
             {[0, 1, 2, 3, 4].map((i) => (
               <Star
                 key={i}
                 size={12}
                 className={
-                  i < Math.round(rating)
+                  hasReviews && i < Math.round(rating)
                     ? "fill-amber-400 text-amber-400"
                     : "fill-stone-200 text-stone-200"
                 }
               />
             ))}
           </span>
-          <span className="text-[11px] font-medium text-stone-700">
-            {rating.toFixed(1)}
-          </span>
-          {item.sold ? (
-            <span className="text-[11px] text-stone-400">{item.sold}</span>
-          ) : item.reviews != null ? (
-            <span className="text-[11px] text-stone-400">({item.reviews})</span>
-          ) : null}
+          {hasReviews ? (
+            <>
+              <span className="text-[11px] font-medium text-stone-700">
+                {rating.toFixed(1)}
+              </span>
+              <span className="text-[11px] text-stone-400">({item.reviews})</span>
+            </>
+          ) : (
+            <span className="text-[11px] text-stone-400">No ratings</span>
+          )}
         </div>
 
         {/* Fixed two-line price block (price, then was-price + discount on a
