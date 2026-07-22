@@ -11,6 +11,7 @@ interface ShopLocation {
   address: string | null;
   opensAt: string | null;
   closesAt: string | null;
+  imageUrl: string | null;
 }
 
 /** Shop-location cards — the "Visit our stores" design. Pulled live from the
@@ -33,13 +34,18 @@ export async function ShopCards({ empty }: { empty?: React.ReactNode }) {
           : null;
         return (
           <div key={loc.id} className="overflow-hidden rounded-2xl border border-stone-200 transition-shadow hover:shadow-md">
-            {/* Interior photograph */}
-            <div className="flex aspect-[16/9] items-center justify-center bg-gradient-to-br from-stone-200 via-stone-100 to-[#f3e8c8]">
-              <div className="flex flex-col items-center text-stone-400">
-                <ImageIcon size={44} strokeWidth={1.2} />
-                <span className="mt-2 text-xs font-medium uppercase tracking-[0.14em]">{loc.name} interior</span>
+            {/* Interior photograph — real photo from admin, or a placeholder */}
+            {loc.imageUrl ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={loc.imageUrl} alt={`${loc.name} shop`} className="aspect-[16/9] w-full object-cover" />
+            ) : (
+              <div className="flex aspect-[16/9] items-center justify-center bg-gradient-to-br from-stone-200 via-stone-100 to-[#f3e8c8]">
+                <div className="flex flex-col items-center text-stone-400">
+                  <ImageIcon size={44} strokeWidth={1.2} />
+                  <span className="mt-2 text-xs font-medium uppercase tracking-[0.14em]">{loc.name} interior</span>
+                </div>
               </div>
-            </div>
+            )}
 
             <div className="space-y-6 p-6 md:p-8">
               <h3 className="font-display text-2xl font-bold not-prose">{loc.name}</h3>

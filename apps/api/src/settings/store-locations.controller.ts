@@ -1,4 +1,4 @@
-import { Body, Controller, Delete, Get, Param, Post, Put } from '@nestjs/common';
+import { Body, Controller, Delete, Get, OnModuleInit, Param, Post, Put } from '@nestjs/common';
 import { randomBytes } from 'crypto';
 import { z } from 'zod';
 import { PrismaService } from '../prisma/prisma.service';
@@ -15,18 +15,25 @@ const locationSchema = z.object({
   address: z.string().max(500).nullable().optional(),
   opensAt: z.string().max(10).nullable().optional(),
   closesAt: z.string().max(10).nullable().optional(),
+  imageUrl: z.string().max(600).nullable().optional(),
 });
 
 interface LocationRow {
   id: string; name: string; phone: string | null; email: string | null; whatsapp: string | null;
-  address: string | null; opensAt: string | null; closesAt: string | null; sortOrder: number; status: string;
+  address: string | null; opensAt: string | null; closesAt: string | null;
+  imageUrl: string | null; sortOrder: number; status: string;
 }
 
 const clean = (v: string | null | undefined) => (v && v.trim() ? v.trim() : null);
 
 @Controller('store-locations')
-export class StoreLocationsController {
+export class StoreLocationsController implements OnModuleInit {
   constructor(private prisma: PrismaService) {}
+
+  // Add the shop-photo column if it isn't there yet (auto-applies on deploy).
+  async onModuleInit() {
+    await this.prisma.$executeRawUnsafe(`ALTER TABLE store_locations ADD COLUMN IF NOT EXISTS image_url text`);
+  }
 
   // Public: the storefront "Our shops" page (/shops) lists these. Only active
   // rows and shop-facing fields are returned; writes below stay staff-only.
@@ -35,7 +42,8 @@ export class StoreLocationsController {
   list() {
     return this.prisma.$queryRaw<LocationRow[]>`
       SELECT id, name, phone, email, whatsapp, address,
-             opens_at AS "opensAt", closes_at AS "closesAt", sort_order AS "sortOrder", status
+             opens_at AS "opensAt", closes_at AS "closesAt", image_url AS "imageUrl",
+             sort_order AS "sortOrder", status
       FROM store_locations WHERE status = 'active'
       ORDER BY sort_order ASC, name ASC`;
   }
@@ -46,9 +54,9 @@ export class StoreLocationsController {
     const d = parse(locationSchema, body);
     const id = 'loc_' + randomBytes(8).toString('hex');
     await this.prisma.$executeRaw`
-      INSERT INTO store_locations (id, name, phone, email, whatsapp, address, opens_at, closes_at, sort_order, status, created_at, updated_at)
+      INSERT INTO store_locations (id, name, phone, email, whatsapp, address, opens_at, closes_at, image_url, sort_order, status, created_at, updated_at)
       VALUES (${id}, ${d.name.trim()}, ${clean(d.phone)}, ${clean(d.email)}, ${clean(d.whatsapp)}, ${clean(d.address)},
-              ${clean(d.opensAt)}, ${clean(d.closesAt)},
+              ${clean(d.opensAt)}, ${clean(d.closesAt)}, ${clean(d.imageUrl)},
               (SELECT COALESCE(MAX(sort_order), 0) + 1 FROM store_locations), 'active', now(), now())`;
     return { id };
   }
@@ -61,7 +69,8 @@ export class StoreLocationsController {
       UPDATE store_locations SET
         name = ${d.name.trim()}, phone = ${clean(d.phone)}, email = ${clean(d.email)},
         whatsapp = ${clean(d.whatsapp)}, address = ${clean(d.address)},
-        opens_at = ${clean(d.opensAt)}, closes_at = ${clean(d.closesAt)}, updated_at = now()
+        opens_at = ${clean(d.opensAt)}, closes_at = ${clean(d.closesAt)},
+        image_url = ${clean(d.imageUrl)}, updated_at = now()
       WHERE id = ${id}`;
     return { ok: true };
   }

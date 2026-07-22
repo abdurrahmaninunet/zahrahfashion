@@ -6,6 +6,7 @@ import { serverApi } from '@/lib/api';
 import { ProductCard, type ProductCardData } from '@/components/product-card';
 import type { PdpProduct } from '@/app/p/[slug]/buy-box';
 import { Gallery } from '@/app/p/[slug]/gallery';
+import { Reviews } from '@/app/p/[slug]/reviews';
 import { MimBuyBox } from './configurator';
 
 export const revalidate = 30;
@@ -54,6 +55,9 @@ export default async function MimProductPage({ params }: { params: Promise<{ slu
         <Gallery media={product.media} />
         <MimBuyBox product={product} storeName={storeName} />
       </div>
+
+      {/* Below the fold: ratings & reviews (same as the standard product page) */}
+      <Reviews productId={product.id} slug={slug} />
 
       {/* Related MIM products */}
       <MimRelated currentId={product.id} />

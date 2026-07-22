@@ -2,14 +2,15 @@
 
 import { useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Plus, MapPin, Phone, Clock, MessageCircle, Mail } from 'lucide-react';
+import { Plus, MapPin, Phone, Clock, MessageCircle, Mail, ImagePlus, Loader2, X } from 'lucide-react';
 import { api } from '@/lib/api';
 import { useAuth } from '@/lib/auth';
 import { Button, Dialog, ErrorNote, Field, Input, PageHeader, Spinner, Textarea } from '@/components/ui';
 
 interface StoreLocation {
   id: string; name: string; phone: string | null; email: string | null; whatsapp: string | null;
-  address: string | null; opensAt: string | null; closesAt: string | null; sortOrder: number; status: string;
+  address: string | null; opensAt: string | null; closesAt: string | null;
+  imageUrl: string | null; sortOrder: number; status: string;
 }
 
 export default function StoreLocationsPage() {
@@ -71,8 +72,21 @@ function LocationDialog({ location, onClose }: { location: StoreLocation | null;
     address: location?.address ?? '',
     opensAt: location?.opensAt ?? '',
     closesAt: location?.closesAt ?? '',
+    imageUrl: location?.imageUrl ?? '',
   });
   const [error, setError] = useState<unknown>(null);
+  const [uploading, setUploading] = useState(false);
+
+  async function uploadImage(files: FileList | null) {
+    if (!files?.length) return;
+    setUploading(true);
+    try {
+      const fd = new FormData();
+      fd.append('file', files[0]);
+      const asset = await api.postForm<{ url: string }>('/content/media', fd);
+      setForm((f) => ({ ...f, imageUrl: asset.url }));
+    } catch (e) { setError(e); } finally { setUploading(false); }
+  }
   const done = () => { queryClient.invalidateQueries({ queryKey: ['store-locations'] }); onClose(); };
 
   const save = useMutation({
@@ -85,6 +99,7 @@ function LocationDialog({ location, onClose }: { location: StoreLocation | null;
         address: form.address || null,
         opensAt: form.opensAt || null,
         closesAt: form.closesAt || null,
+        imageUrl: form.imageUrl || null,
       };
       return location ? api.put(`/store-locations/${location.id}`, body) : api.post('/store-locations', body);
     },
@@ -103,6 +118,27 @@ function LocationDialog({ location, onClose }: { location: StoreLocation | null;
     <Dialog open onClose={onClose} title={location ? `Edit ${location.name}` : 'Add a shop'}>
       <div className="space-y-3">
         <Field label="Store name"><Input value={form.name} onChange={set('name')} placeholder="e.g. Zahrah Fashion Hub — Wuse 2" /></Field>
+
+        <Field label="Shop photo">
+          {form.imageUrl ? (
+            <div className="relative overflow-hidden rounded-lg border border-stone-200">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={form.imageUrl} alt="Shop" className="aspect-[16/9] w-full object-cover" />
+              <div className="absolute right-2 top-2 flex gap-2">
+                <label className="cursor-pointer rounded-md bg-white/90 px-2.5 py-1 text-xs font-semibold text-stone-700 shadow hover:bg-white">
+                  {uploading ? <Loader2 size={13} className="animate-spin" /> : 'Replace'}
+                  <input type="file" accept="image/jpeg,image/png,image/webp" className="hidden" onChange={(e) => { uploadImage(e.target.files); e.target.value = ''; }} />
+                </label>
+                <button type="button" onClick={() => setForm((f) => ({ ...f, imageUrl: '' }))} className="rounded-md bg-white/90 px-2 py-1 text-stone-600 shadow hover:bg-white hover:text-red-600" aria-label="Remove photo"><X size={14} /></button>
+              </div>
+            </div>
+          ) : (
+            <label className="flex aspect-[16/9] cursor-pointer flex-col items-center justify-center gap-2 rounded-lg border-2 border-dashed border-stone-300 text-stone-400 transition-colors hover:border-brand-400 hover:text-brand-600">
+              {uploading ? <Loader2 size={22} className="animate-spin" /> : <><ImagePlus size={26} /><span className="text-xs font-medium">Upload a shop photo</span></>}
+              <input type="file" accept="image/jpeg,image/png,image/webp" className="hidden" onChange={(e) => { uploadImage(e.target.files); e.target.value = ''; }} />
+            </label>
+          )}
+        </Field>
         <div className="grid grid-cols-2 gap-3">
           <Field label="Contact phone"><Input value={form.phone} onChange={set('phone')} placeholder="0803 123 4567" /></Field>
           <Field label="WhatsApp number"><Input value={form.whatsapp} onChange={set('whatsapp')} placeholder="+234 803 123 4567" /></Field>

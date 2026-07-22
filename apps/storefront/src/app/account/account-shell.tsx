@@ -29,7 +29,7 @@ export function AccountShell({ title, showBack, children }: { title: string; sho
   const customer = me.customer;
 
   return (
-    <div className="mx-auto max-w-3xl px-4 py-8">
+    <div className="mx-auto max-w-5xl px-4 py-8">
       <div className="flex items-center justify-between gap-3">
         <h1 className="font-display text-2xl font-bold">{title}</h1>
         <button className="shrink-0 text-sm text-stone-400 hover:text-stone-800 cursor-pointer"
@@ -124,7 +124,21 @@ export function AddressesTab() {
 
 export function ProfileTab({ customer, onChanged }: { customer: NonNullable<Me['customer']>; onChanged: () => void }) {
   const [name, setName] = useState(customer.fullName);
+  const [phone, setPhone] = useState(customer.phone ?? '');
   const [saved, setSaved] = useState(false);
+  const [detailsError, setDetailsError] = useState<string | null>(null);
+  const detailsDirty = name.trim() !== customer.fullName || phone.trim() !== (customer.phone ?? '');
+
+  async function saveDetails() {
+    if (!name.trim()) return;
+    setDetailsError(null);
+    try {
+      await api.put('/store/account/profile', { fullName: name.trim(), phone: phone.trim() || undefined });
+      setSaved(true); setTimeout(() => setSaved(false), 1500); onChanged();
+    } catch (e) {
+      setDetailsError(e instanceof ApiError ? e.message : 'Could not save your details.');
+    }
+  }
   const CONSENTS = [
     ['marketing_email', 'Email me about new arrivals & offers'],
     ['marketing_whatsapp', 'WhatsApp updates'],
@@ -154,16 +168,21 @@ export function ProfileTab({ customer, onChanged }: { customer: NonNullable<Me['
         )}
       </div>
 
-      <div className="rounded-xl border border-stone-200 bg-white p-4">
-        <label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-stone-500">Your name</label>
-        <div className="flex gap-2">
+      <div className="space-y-3 rounded-xl border border-stone-200 bg-white p-4">
+        <div>
+          <label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-stone-500">Your name</label>
           <input className="h-11 w-full rounded-md border border-stone-200 px-3 text-sm outline-none focus:border-[#8a6d1f]" value={name} onChange={(e) => setName(e.target.value)} />
-          <button className="h-11 shrink-0 rounded-md bg-stone-900 px-4 text-sm font-semibold text-white cursor-pointer disabled:opacity-50"
-            disabled={!name.trim() || name.trim() === customer.fullName}
-            onClick={async () => { await api.put('/store/account/profile', { fullName: name.trim() }); setSaved(true); setTimeout(() => setSaved(false), 1500); onChanged(); }}>
-            {saved ? '✓ Saved' : 'Save'}
-          </button>
         </div>
+        <div>
+          <label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-stone-500">Phone number</label>
+          <input type="tel" className="h-11 w-full rounded-md border border-stone-200 px-3 text-sm outline-none focus:border-[#8a6d1f]" value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="+234 803 123 4567" />
+        </div>
+        {detailsError && <p className="text-xs text-red-600">{detailsError}</p>}
+        <button className="h-11 rounded-md bg-stone-900 px-5 text-sm font-semibold text-white cursor-pointer disabled:opacity-50"
+          disabled={!name.trim() || !detailsDirty}
+          onClick={saveDetails}>
+          {saved ? '✓ Saved' : 'Save changes'}
+        </button>
       </div>
       <ChangeEmailCard customer={customer} onChanged={onChanged} />
       {customer.hasPassword && <ChangePasswordCard />}

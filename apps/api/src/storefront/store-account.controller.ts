@@ -9,6 +9,7 @@ import { CustomerAuthService, trackingToken } from './customer-auth.service';
 import { customerStatus } from './store-checkout.service';
 import { OrdersService } from '../orders/orders.service';
 import { CustomersService } from '../customers/customers.service';
+import { tryNormalizePhone } from '../customers/phone';
 import { ReviewsService } from '../reviews/reviews.service';
 import { AnkoService } from '../anko/anko.service';
 import { ContactService } from '../contact/contact.service';
@@ -304,8 +305,21 @@ export class StoreAccountController {
   @Put('profile')
   async updateProfile(@Body() body: unknown, @Req() req: Request) {
     const customer = await this.customerAuth.requireCustomer(req);
-    const { fullName } = parse(z.object({ fullName: z.string().min(1).max(200) }), body);
-    await this.prisma.customer.update({ where: { id: customer.id }, data: { fullName } });
+    const { fullName, phone } = parse(
+      z.object({ fullName: z.string().min(1).max(200), phone: z.string().max(40).optional() }),
+      body,
+    );
+    const data: { fullName: string; primaryPhone?: string } = { fullName };
+    if (phone !== undefined && phone.trim()) {
+      const normalized = tryNormalizePhone(phone);
+      if (!normalized) throw new BadRequestException('Enter a valid phone number');
+      if (normalized !== customer.primaryPhone) {
+        const clash = await this.prisma.customer.findUnique({ where: { primaryPhone: normalized } });
+        if (clash && clash.id !== customer.id) throw new BadRequestException('That phone number is already in use on another account.');
+        data.primaryPhone = normalized;
+      }
+    }
+    await this.prisma.customer.update({ where: { id: customer.id }, data });
     return { ok: true };
   }
 

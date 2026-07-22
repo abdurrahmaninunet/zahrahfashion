@@ -45,15 +45,18 @@ function Dashboard({ customer }: { customer: NonNullable<Me['customer']> }) {
   const firstName = customer.fullName.split(' ')[0];
   const orderCount = orders?.length ?? 0;
 
-  // Profile completion — five signals the customer can actually control.
-  const checks = [
-    Boolean(customer.fullName?.trim()),
-    Boolean(customer.email),
-    Boolean(customer.phone),
-    Boolean(addresses?.length),
-    Boolean(customer.hasPassword),
-  ];
-  const complete = Math.round((checks.filter(Boolean).length / checks.length) * 100);
+  // Profile completion — only signals the customer can actually resolve from the
+  // account UI, each paired with the page that fixes it. (Password is not scored:
+  // email sign-ups always have one and Google sign-ins don't need one, so it was
+  // an unfixable dead end.)
+  const todo = [
+    !customer.fullName?.trim() && { label: 'Add your name', href: '/account/profile' },
+    !customer.email && { label: 'Add your email', href: '/account/profile' },
+    !customer.phone && { label: 'Add your phone number', href: '/account/profile' },
+    !addresses?.length && { label: 'Add a delivery address', href: '/account/addresses' },
+  ].filter(Boolean) as { label: string; href: string }[];
+  const TRACKED = 4;
+  const complete = Math.round(((TRACKED - todo.length) / TRACKED) * 100);
 
   return (
     <div className="space-y-5">
@@ -77,8 +80,8 @@ function Dashboard({ customer }: { customer: NonNullable<Me['customer']> }) {
           </span>
         </div>
 
-        {/* Profile completion */}
-        {complete < 100 && (
+        {/* Profile completion — only shown when there's a real, fixable gap */}
+        {todo.length > 0 && (
           <div className="border-t border-stone-100 px-5 py-3">
             <div className="flex items-center justify-between text-xs">
               <span className="font-medium text-stone-600">Complete your profile</span>
@@ -87,8 +90,8 @@ function Dashboard({ customer }: { customer: NonNullable<Me['customer']> }) {
             <div className="mt-1.5 h-1.5 w-full overflow-hidden rounded-full bg-stone-100">
               <div className="h-full rounded-full bg-[#c9a227] transition-all" style={{ width: `${complete}%` }} />
             </div>
-            <Link href="/account/profile" className="mt-1.5 inline-block text-xs font-medium text-[#8a6d1f] hover:underline">
-              Finish setting up →
+            <Link href={todo[0].href} className="mt-1.5 inline-block text-xs font-medium text-[#8a6d1f] hover:underline">
+              {todo[0].label} →
             </Link>
           </div>
         )}

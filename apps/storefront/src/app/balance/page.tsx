@@ -57,7 +57,7 @@ export default function BalancePage() {
   if (isLoading) return <p className="py-20 text-center text-sm text-stone-400">Loading…</p>;
 
   return (
-    <div className="mx-auto max-w-[1905px] px-4 py-8 lg:px-[8rem]">
+    <div className="mx-auto max-w-5xl px-4 py-8">
       <h1 className="font-display text-2xl font-bold md:text-3xl">Store Credit</h1>
       <p className="mt-1 text-sm text-stone-500">Top up your store credit or claim a gift card. Store credit top-ups are non-refundable.</p>
       <div className="mt-6">
