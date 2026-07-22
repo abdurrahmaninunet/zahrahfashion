@@ -129,7 +129,7 @@ export function Header({ context }: { context: StoreContext }) {
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img src="/logo.svg" alt="Zahrah Fashion Hub" className="h-8 w-8 shrink-0 sm:h-9 sm:w-9" />
               {/* Wordmark hides on phones (logo only); the mobile drawer keeps its own logo + name. */}
-              <span className="hidden font-display whitespace-nowrap text-[17px] font-bold uppercase tracking-[0.08em] md:inline sm:text-[24px] sm:tracking-[0.16em]">
+              <span className="hidden font-display whitespace-nowrap text-[18px] font-bold md:inline sm:text-[24px]">
                 {context.store.name || 'Zahrah Fashion Hub'}
               </span>
             </Link>
