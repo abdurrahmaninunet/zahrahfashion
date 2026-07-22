@@ -184,6 +184,7 @@ function MimContentForm({ initial }: { initial: MimContentData }) {
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['mim-content'] }),
   });
 
+  // Up to 3 featured products (shown on the homepage MIM band).
   const toggleProduct = (id: string) =>
     setIds((cur) => (cur.includes(id) ? cur.filter((x) => x !== id) : cur.length >= 3 ? cur : [...cur, id]));
 
@@ -215,7 +216,7 @@ function MimContentForm({ initial }: { initial: MimContentData }) {
           <Field label="Subtitle"><Textarea value={subtitle} onChange={(e) => setSubtitle(e.target.value)} placeholder="Add your name, your team, or your own design." rows={2} maxLength={240} /></Field>
           <div>
             <p className="mb-2 text-sm font-medium text-stone-700">
-              Featured products <span className="font-normal text-stone-400">— pick up to 3 (shown on the homepage in the order selected)</span>
+              Featured products <span className="font-normal text-stone-400">— pick up to 3 (shown on the homepage MIM band)</span>
             </p>
             {initial.products.length ? (
               <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">

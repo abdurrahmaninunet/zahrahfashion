@@ -42,7 +42,7 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
   }
 
   // Store name for the buy-box "sold by" line (non-critical — degrades to default).
-  let storeName = 'Zahra Fashion';
+  let storeName = 'Zahrah Fashion Hub';
   try {
     const ctx = await serverApi<{ store: { name: string } }>('/store/context');
     if (ctx.store.name) storeName = ctx.store.name;
@@ -87,9 +87,36 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
       {/* Below the fold: ratings & reviews */}
       <Reviews productId={product!.id} slug={product!.slug} />
 
+      {/* Social proof: products co-saved in customers' wishlists */}
+      <AlsoLiked productId={product!.id} />
+
       {/* Related products from the same category */}
       <RelatedProducts categorySlug={product!.category.slug} currentId={product!.id} />
     </div>
+  );
+}
+
+/** "Customers who saved this also liked" — real wishlist co-occurrence.
+ *  Renders nothing until there's genuine co-save data to show. */
+async function AlsoLiked({ productId }: { productId: string }) {
+  let products: ProductCardData[] = [];
+  try {
+    const res = await serverApi<{ products: ProductCardData[] }>(`/store/also-liked?id=${encodeURIComponent(productId)}`, 120);
+    products = res.products.slice(0, 6);
+  } catch {
+    /* no co-save data yet */
+  }
+  if (!products.length) return null;
+
+  return (
+    <section className="mt-12 border-t border-stone-200 pt-8">
+      <h2 className="mb-4 font-display text-xl font-bold">Customers who saved this also liked</h2>
+      <div className="grid grid-cols-2 gap-x-3 gap-y-6 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6">
+        {products.map((p) => (
+          <ProductCard key={p.id} product={p} />
+        ))}
+      </div>
+    </section>
   );
 }
 
@@ -107,7 +134,7 @@ async function RelatedProducts({ categorySlug, currentId }: { categorySlug: stri
 
   return (
     <section className="mt-12 border-t border-stone-200 pt-8">
-      <h2 className="mb-4 font-display text-xl font-bold">Related products</h2>
+      <h2 className="mb-4 font-display text-xl font-bold">You may also like</h2>
       <div className="grid grid-cols-2 gap-x-3 gap-y-6 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6">
         {products.map((p) => (
           <ProductCard key={p.id} product={p} />

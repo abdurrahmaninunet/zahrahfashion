@@ -13,6 +13,7 @@ import { ReviewsService } from '../reviews/reviews.service';
 import { AnkoService } from '../anko/anko.service';
 import { ContactService } from '../contact/contact.service';
 import { WalletService } from '../wallet/wallet.service';
+import { WishlistAlertsService } from './wishlist-alerts.service';
 import { AuthedUser } from '../auth/auth.types';
 
 const amountSchema = z.object({ amount: z.number().int().positive(), origin: z.string().max(200).optional() });
@@ -47,6 +48,7 @@ export class StoreAccountController {
     private anko: AnkoService,
     private contactInbox: ContactService,
     private wallet: WalletService,
+    private wishlistAlerts: WishlistAlertsService,
   ) {}
 
   // ── Gift cards & balance (signed-in) ──────────────────────────────────────
@@ -87,6 +89,19 @@ export class StoreAccountController {
     const customer = await this.customerAuth.requireCustomer(req);
     const { amount, origin } = parse(amountSchema, body);
     return this.wallet.topupBalance({ id: customer.id, email: customer.email }, amount, origin);
+  }
+
+  /** Server-generated PDF receipt for one wallet transaction. */
+  @Get('balance/receipt/:ledgerId')
+  async balanceReceipt(@Param('ledgerId') ledgerId: string, @Req() req: Request, @Res() res: Response) {
+    const customer = await this.customerAuth.requireCustomer(req);
+    const { filename, bytes } = await this.wallet.receiptPdf(customer.id, ledgerId);
+    res.set({
+      'Content-Type': 'application/pdf',
+      'Content-Disposition': `attachment; filename="${filename}"`,
+      'Content-Length': String(bytes.length),
+    });
+    res.end(Buffer.from(bytes));
   }
 
   @Post('balance/claim')
@@ -167,8 +182,9 @@ export class StoreAccountController {
 
   @Post('reset/start')
   resetStart(@Body() body: unknown) {
-    const { identifier } = parse(z.object({ identifier: z.string().min(3) }), body);
-    return this.customerAuth.startPasswordReset(identifier);
+    // Password reset is email-only (no phone) — D-reset.
+    const { email } = parse(z.object({ email: z.string().email() }), body);
+    return this.customerAuth.startPasswordReset(email);
   }
 
   @Post('contact')
@@ -217,6 +233,36 @@ export class StoreAccountController {
     return { ids: unique };
   }
 
+  // ── Wishlist alerts (price drop / back in stock) ───────────────────────────
+
+  @Get('wishlist-alerts')
+  async wishlistAlertsList(@Req() req: Request) {
+    const customer = await this.customerAuth.requireCustomer(req);
+    return this.wishlistAlerts.list(customer.id);
+  }
+
+  @Post('wishlist-alerts')
+  async wishlistAlertsSet(@Body() body: unknown, @Req() req: Request) {
+    const customer = await this.customerAuth.requireCustomer(req);
+    const { productIds, notifyPrice, notifyStock } = parse(
+      z.object({
+        productIds: z.array(z.string().max(64)).min(1).max(200),
+        notifyPrice: z.boolean().optional(),
+        notifyStock: z.boolean().optional(),
+      }),
+      body,
+    );
+    return this.wishlistAlerts.set(customer.id, productIds, { notifyPrice, notifyStock });
+  }
+
+  /** Dev-only: run the alert scan immediately (production uses the hourly cron). */
+  @Post('wishlist-alerts/run')
+  async wishlistAlertsRun(@Req() req: Request) {
+    await this.customerAuth.requireCustomer(req);
+    if (process.env.NODE_ENV === 'production') throw new BadRequestException('Not available');
+    return this.wishlistAlerts.scan();
+  }
+
   @Post('logout')
   async logout(@Req() req: Request, @Res({ passthrough: true }) res: Response) {
     await this.customerAuth.logout(req, res);
@@ -233,7 +279,14 @@ export class StoreAccountController {
     });
     const consentNow: Record<string, string> = {};
     for (const c of consents) consentNow[c.type] = c.status;
-    const hasPassword = await this.customerAuth.hasPassword(customer.id);
+    const cred = await this.prisma.customerCredential.findUnique({
+      where: { customerId: customer.id },
+      select: { verifiedAt: true },
+    });
+    const hasPassword = !!cred;
+    // Verified when there's an email and either a verified password credential or
+    // a Google account (which has no credential but a Google-verified email).
+    const emailVerified = !!customer.email && (cred ? !!cred.verifiedAt : true);
     return {
       customer: {
         id: customer.id,
@@ -241,6 +294,8 @@ export class StoreAccountController {
         phone: customer.primaryPhone,
         email: customer.email,
         hasPassword,
+        emailVerified,
+        memberSince: customer.createdAt,
         consentNow,
       },
     };
@@ -274,6 +329,25 @@ export class StoreAccountController {
       body,
     );
     return this.customerAuth.verifyPasswordChange(customer.id, pendingToken, code);
+  }
+
+  /** Change email (signed-in): email an OTP to the NEW address. */
+  @Post('email/change/start')
+  async emailChangeStart(@Body() body: unknown, @Req() req: Request) {
+    const customer = await this.customerAuth.requireCustomer(req);
+    const { email } = parse(z.object({ email: z.string().email() }), body);
+    return this.customerAuth.startEmailChange(customer.id, email);
+  }
+
+  /** Confirm the OTP → apply the new email. */
+  @Post('email/change/verify')
+  async emailChangeVerify(@Body() body: unknown, @Req() req: Request) {
+    const customer = await this.customerAuth.requireCustomer(req);
+    const { pendingToken, code } = parse(
+      z.object({ pendingToken: z.string().min(10), code: z.string().length(6) }),
+      body,
+    );
+    return this.customerAuth.verifyEmailChange(customer.id, pendingToken, code);
   }
 
   @Post('consent')

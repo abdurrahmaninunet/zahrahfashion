@@ -1,4 +1,4 @@
-// Zahrah Fashion — Admin platform schema
+// Zahrah Fashion Hub — Admin platform schema
 // Sources: docs/admin BRD/SRS set v1.0 + Decision Register D1.
 // Conventions:
 //   - Money: integer kobo (never float) — Discounts Rule 8, Reports Rule 7.

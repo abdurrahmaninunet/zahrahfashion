@@ -76,6 +76,23 @@ Create an ECS cluster and **3 services**:
 
 The API container runs `prisma migrate deploy` on start, then boots. (Prefer a one-off migrate task if you run multiple API replicas.)
 
+## 4a. Partner portal — partner.zahrahfashion.com
+The wholesale partner portal (`apps/partner`) is a **4th Next.js service**, deployed exactly like the storefront/admin (its Dockerfile + the `partner` matrix entry in `.github/workflows/deploy-images.yml` are already in the repo). It proxies `/api` + `/uploads` to the same internal API — there is **no separate partner backend** (all partner endpoints live in the API under `/api/partnership/*`).
+
+1. **ECR repo:** `aws ecr create-repository --repository-name zahrah-partner`.
+2. **Build the image:** run the "Build & push images to ECR" GitHub Action (it now builds `zahrah-partner` too), or locally:
+   ```bash
+   docker build -f apps/partner/Dockerfile --build-arg API_URL=http://zahrah-api:4000 \
+     -t $ACCOUNT.dkr.ecr.$REGION.amazonaws.com/zahrah-partner:latest .
+   docker push $ACCOUNT.dkr.ecr.$REGION.amazonaws.com/zahrah-partner:latest
+   ```
+3. **ECS service** `zahrah-partner`: image `zahrah-partner`, container port **3000**, env `API_URL` = internal API URL (`http://zahrah-api.internal:4000`), health check `/`. Same cluster/subnets/SG as the other frontends.
+4. **ALB:** add a target group (:3000) + a host-based rule `partner.zahrahfashion.com` → that target group. Extend the ACM cert to include `partner.zahrahfashion.com` (add it as a SAN and re-validate, or issue a new cert covering apex + admin + partner).
+5. **DNS:** `partner.zahrahfashion.com` → **Alias A** → the same public ALB (Route 53), or a CNAME to the ALB domain at GoDaddy.
+6. No new secrets: partner OTP/emails use the API's existing `RESEND_*`; partner payments use the API's existing `PAYSTACK_SECRET_KEY`; the storefront already links to `https://partner.zahrahfashion.com/apply`.
+
+> **Scaling note:** the partner **OTP codes** live in the DB (`partner_otps`), so they work across multiple API tasks. But the partner **rate-limiter** is in-process (per-task), so with N API tasks the effective limit is ~N×. If you run more than one API task and want strict limits, move it to Redis (same `EphemeralStore` pattern) — ask and I'll wire it.
+
 ## 5. Seed the blank store
 Run once against RDS (a one-off ECS task or locally through a bastion):
 ```bash

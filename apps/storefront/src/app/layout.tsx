@@ -15,7 +15,7 @@ const sans = Jost({ subsets: ['latin'], variable: '--font-sans-var', display: 's
 export const revalidate = 10; // keep the shared shell (announcement, nav) fresh
 
 export async function generateMetadata(): Promise<Metadata> {
-  let name = 'Zahra Fashion';
+  let name = 'Zahrah Fashion Hub';
   try {
     const context = await serverApi<StoreContext>('/store/context');
     if (context.store.name) name = String(context.store.name);
@@ -46,7 +46,7 @@ export const viewport: Viewport = {
 };
 
 const FALLBACK_CONTEXT: StoreContext = {
-  store: { name: 'Zahra Fashion', phone: '', whatsapp: '', whatsappMessage: '', email: '', address: '', social: {} },
+  store: { name: 'Zahrah Fashion Hub', phone: '', whatsapp: '', whatsappMessage: '', email: '', address: '', social: {} },
   mimEnabled: true,
   podAvailable: false,
   announcement: null,
@@ -59,7 +59,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
     context = await serverApi<StoreContext>('/store/context', 10);
   } catch { /* stale-while-error: shell renders with fallback (Business Rule 6) */ }
 
-  const storeName = context.store.name || 'Zahra Fashion';
+  const storeName = context.store.name || 'Zahrah Fashion Hub';
   const social = context.store.social ?? {};
   const sameAs = [
     social.instagram && `https://instagram.com/${social.instagram.replace(/^@/, '')}`,

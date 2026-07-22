@@ -2,7 +2,8 @@
 
 import Link from 'next/link';
 import { useEffect, useRef, useState } from 'react';
-import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { ChevronLeft, ChevronRight, MessageCircle } from 'lucide-react';
+import { whatsappLink } from '@/lib/format';
 
 interface Slide {
   // image/link may be a plain string (URL) or an object — tolerate both.
@@ -19,7 +20,8 @@ const SLIDE_BACKGROUNDS = ['bg-[#f5f1de]', 'bg-[#ece9f4]', 'bg-[#e8f1ea]'];
 
 /** Hero banner (§3.2): full-width pale band — headline + call-to-action on the
  *  left, imagery on the right, side arrows and bottom dots. Autoplay 6s. */
-export function HeroSlider({ slides, priority }: { slides: Slide[]; priority?: boolean }) {
+export function HeroSlider({ slides, priority, whatsapp }: { slides: Slide[]; priority?: boolean; whatsapp?: string }) {
+  const wa = whatsapp ? whatsappLink(whatsapp, "Hi! I'd like to ask about your collections 👋") : null;
   const [index, setIndex] = useState(0);
   const [paused, setPaused] = useState(false);
   const touchStart = useRef<number | null>(null);
@@ -56,19 +58,38 @@ export function HeroSlider({ slides, priority }: { slides: Slide[]; priority?: b
             aria-hidden={i !== index}
             className={`absolute inset-0 grid grid-cols-1 content-center gap-4 px-4 pb-10 pt-6 transition-opacity duration-500 md:grid-cols-2 md:items-center md:gap-10 md:py-0 lg:px-[8rem] ${i === index ? 'opacity-100' : 'pointer-events-none opacity-0'}`}
           >
-            <div className="max-w-lg">
+            <div className="max-w-xl">
               {slide.headline && (
-                <h2 className="font-display text-3xl font-bold leading-tight text-stone-900 md:text-5xl">{slide.headline}</h2>
+                <h2 className="max-w-lg font-display text-3xl font-bold leading-tight text-stone-900 md:text-5xl">{slide.headline}</h2>
               )}
               {slide.subtext && <p className="mt-3 text-stone-600 md:text-lg">{slide.subtext}</p>}
-              {slide.ctaLabel && (
+              <div className="mt-6 flex flex-wrap items-center gap-2.5">
+                {slide.ctaLabel && (
+                  <Link
+                    href={urlOf(slide.link) || '/'}
+                    className="inline-block whitespace-nowrap rounded-sm bg-stone-900 px-6 py-3 text-sm font-semibold text-white transition-colors hover:bg-stone-700"
+                  >
+                    {slide.ctaLabel}
+                  </Link>
+                )}
+                {/* Static quick-actions, shown on every slide */}
                 <Link
-                  href={urlOf(slide.link) || '/'}
-                  className="mt-6 inline-block rounded-sm bg-stone-900 px-9 py-3 text-sm font-semibold text-white transition-colors hover:bg-stone-700"
+                  href="/shops"
+                  className="inline-block whitespace-nowrap rounded-sm border border-stone-400 bg-white/70 px-5 py-3 text-sm font-semibold text-stone-900 transition-colors hover:border-stone-900 hover:bg-white"
                 >
-                  {slide.ctaLabel}
+                  Visit Our Stores
                 </Link>
-              )}
+                {wa && (
+                  <a
+                    href={wa}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex shrink-0 items-center gap-2 whitespace-nowrap rounded-sm bg-[#25d366] px-5 py-3 text-sm font-semibold text-white transition-colors hover:bg-[#20bd5a]"
+                  >
+                    <MessageCircle size={16} /> Chat on WhatsApp
+                  </a>
+                )}
+              </div>
             </div>
             <div className="relative hidden h-[300px] overflow-hidden rounded-xl md:block">
               {urlOf(slide.image) ? (

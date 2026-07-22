@@ -3,6 +3,7 @@ import Link from 'next/link';
 import { notFound, redirect } from 'next/navigation';
 import { ChevronRight } from 'lucide-react';
 import { serverApi } from '@/lib/api';
+import { ProductCard, type ProductCardData } from '@/components/product-card';
 import type { PdpProduct } from '@/app/p/[slug]/buy-box';
 import { Gallery } from '@/app/p/[slug]/gallery';
 import { MimBuyBox } from './configurator';
@@ -31,7 +32,7 @@ export default async function MimProductPage({ params }: { params: Promise<{ slu
     notFound();
   }
 
-  let storeName = 'Zahra Fashion';
+  let storeName = 'Zahrah Fashion Hub';
   let mimEnabled = true;
   try {
     const ctx = await serverApi<{ store: { name: string }; mimEnabled?: boolean }>('/store/context');
@@ -53,6 +54,33 @@ export default async function MimProductPage({ params }: { params: Promise<{ slu
         <Gallery media={product.media} />
         <MimBuyBox product={product} storeName={storeName} />
       </div>
+
+      {/* Related MIM products */}
+      <MimRelated currentId={product.id} />
     </div>
+  );
+}
+
+/** Other MIM products to personalise — current one excluded. Cards route back
+ *  to the MIM product page. Renders nothing when there's nothing else. */
+async function MimRelated({ currentId }: { currentId: string }) {
+  let products: ProductCardData[] = [];
+  try {
+    const listing = await serverApi<{ products: ProductCardData[] }>('/store/plp?store=mim', 60);
+    products = listing.products.filter((p) => p.id !== currentId).slice(0, 12);
+  } catch {
+    /* no related products */
+  }
+  if (!products.length) return null;
+
+  return (
+    <section className="mt-12 border-t border-stone-200 pt-8">
+      <h2 className="mb-4 font-display text-xl font-bold">You may also like</h2>
+      <div className="grid grid-cols-2 gap-x-3 gap-y-6 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6">
+        {products.map((p) => (
+          <ProductCard key={p.id} product={p} hrefBase="/mim/shop" />
+        ))}
+      </div>
+    </section>
   );
 }

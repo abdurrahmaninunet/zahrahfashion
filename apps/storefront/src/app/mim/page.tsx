@@ -1,6 +1,6 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
-import { Shirt, Users } from 'lucide-react';
+import { Shirt } from 'lucide-react';
 import { serverApi } from '@/lib/api';
 import { ProductCard, ProductCardData } from '@/components/product-card';
 
@@ -41,13 +41,8 @@ export default async function MimStorePage() {
 
   return (
     <div className="mx-auto max-w-[1905px] px-4 py-8 lg:px-[8rem]">
-      <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <h1 className="font-display text-2xl font-bold md:text-3xl">MIM</h1>
-        </div>
-        <Link href="/mim/team" className="inline-flex items-center gap-2 rounded-full bg-stone-950 px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-stone-800">
-          <Users size={16} /> Team order
-        </Link>
+      <div className="mb-6">
+        <h1 className="font-display text-2xl font-bold md:text-3xl">MIM</h1>
       </div>
 
       {products.length ? (

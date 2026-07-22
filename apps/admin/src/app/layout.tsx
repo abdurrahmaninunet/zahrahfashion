@@ -4,7 +4,7 @@ import { Providers } from './providers';
 
 export const metadata: Metadata = {
   title: 'Zahra Admin',
-  description: 'Zahra Fashion admin portal',
+  description: 'Zahrah Fashion Hub admin portal',
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

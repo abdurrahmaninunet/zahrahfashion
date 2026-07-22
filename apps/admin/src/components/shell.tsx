@@ -5,8 +5,8 @@ import { usePathname, useRouter } from 'next/navigation';
 import { useEffect, useRef, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import {
-  Bell, Boxes, FileText, Gift, LayoutDashboard, Lock, LogOut, Mail, Menu, MessageSquare, Package, Percent,
-  Search, Settings, ShoppingBag, Users, BarChart3, Bike, X, Shirt,
+  Bell, Boxes, FileText, Gift, Handshake, LayoutDashboard, Lock, LogOut, Mail, Menu, MessageSquare, Package, Percent,
+  Search, Send, Settings, ShoppingBag, Users, BarChart3, Bike, X, Shirt, Tag,
 } from 'lucide-react';
 import { api, ApiError } from '@/lib/api';
 import { useAuth } from '@/lib/auth';
@@ -17,11 +17,14 @@ const NAV = [
   { href: '/', label: 'Dashboard', icon: LayoutDashboard, capPrefix: 'reports.view_dashboard', exact: true },
   { href: '/orders', label: 'Orders', icon: ShoppingBag, capPrefix: 'orders.' },
   { href: '/products', label: 'Products', icon: Package, capPrefix: 'products.' },
+  { href: '/collections', label: 'Collections', icon: Tag, capPrefix: 'products.' },
   { href: '/inventory', label: 'Inventory', icon: Boxes, capPrefix: 'inventory.' },
   { href: '/customers', label: 'Customers', icon: Users, capPrefix: 'customers.' },
   { href: '/discounts', label: 'Discounts', icon: Percent, capPrefix: 'discounts.' },
   { href: '/content', label: 'Content', icon: FileText, capPrefix: 'content.' },
   { href: '/contact', label: 'Contact', icon: Mail, capPrefix: 'customers.' },
+  { href: '/newsletter', label: 'Newsletter', icon: Send, capPrefix: 'customers.' },
+  { href: '/partnership', label: 'Partnership', icon: Handshake, capPrefix: 'products.' },
   { href: '/reviews', label: 'Comments', icon: MessageSquare, capPrefix: 'products.' },
   { href: '/mim', label: 'MIM Store', icon: Shirt, capPrefix: 'products.' },
   { href: '/lefe', label: 'Lefe', icon: Gift, capPrefix: 'products.' },
@@ -70,8 +73,9 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
         mobileNav ? 'translate-x-0' : '-translate-x-full',
       )}>
         <div className="flex h-14 items-center gap-2 border-b border-stone-100 px-4">
-          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-brand-600 font-bold text-white">Z</div>
-          <span className="font-semibold">Zahra Admin</span>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="/logo.svg" alt="" aria-hidden="true" className="h-7 w-7" />
+          <span className="font-semibold">Zahrah Fashion Hub</span>
           <button className="ml-auto lg:hidden cursor-pointer" onClick={() => setMobileNav(false)}><X size={18} /></button>
         </div>
         <nav className="space-y-0.5 p-2">

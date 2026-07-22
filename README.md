@@ -1,4 +1,4 @@
-# Zahrah Fashion — Ecommerce Platform
+# Zahrah Fashion Hub — Ecommerce Platform
 
 Full implementation of the BRD/SRS document set:
 - **Admin portal** per [docs/admin](docs/admin) (all Phase-1 modules + Addendum A1 Bundles + A2 Staff/Riders)

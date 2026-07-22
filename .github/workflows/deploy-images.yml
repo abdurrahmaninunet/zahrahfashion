@@ -16,9 +16,9 @@ jobs:
     permissions:
       contents: read
     strategy:
-      fail-fast: false        # build all three even if one fails, so errors are visible
+      fail-fast: false        # build all four even if one fails, so errors are visible
       matrix:
-        app: [api, storefront, admin]
+        app: [api, storefront, admin, partner]
     steps:
       - uses: actions/checkout@v4
 

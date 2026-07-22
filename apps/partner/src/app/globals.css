@@ -1,0 +1,39 @@
+@import "tailwindcss";
+
+/* Match the storefront's visual direction: warm neutral canvas, near-black ink,
+   deep gold/brass accent, editorial serif for headlines. */
+@theme {
+  --color-canvas: #faf8f5;
+  --color-ink: #1c1917;
+  --color-accent-50: #faf5e6;
+  --color-accent-100: #f3e8c8;
+  --color-accent-600: #8a6d1f;
+  --color-accent-700: #6f571a;
+  --color-accent-900: #3d3010;
+}
+
+body {
+  @apply bg-white text-stone-900 antialiased;
+  font-family: 'Google Sans', var(--font-sans-var), system-ui, sans-serif;
+  letter-spacing: 0.01em;
+}
+
+.font-display {
+  font-family: 'Google Sans', var(--font-display-var), Georgia, serif;
+  letter-spacing: 0.01em;
+}
+
+.tabular {
+  font-variant-numeric: tabular-nums;
+}
+
+.media-box {
+  @apply relative overflow-hidden bg-stone-100;
+}
+.media-box img {
+  @apply absolute inset-0 h-full w-full object-cover;
+}
+
+::selection {
+  background: #f3e8c8;
+}

@@ -1,11 +1,14 @@
 'use client';
 
-import { useState } from 'react';
-import { AlertCircle, ArrowLeft, Lock, Mail, Phone, ShieldCheck, User } from 'lucide-react';
+import { useEffect, useRef, useState } from 'react';
+import { AlertCircle, ArrowLeft, Eye, EyeOff, Lock, Mail, Phone, ShieldCheck, User } from 'lucide-react';
 import { api, ApiError } from '@/lib/api';
 import { GoogleButton } from './google-button';
 
 type View = 'login' | 'register' | 'otp' | 'reset';
+
+const OTP_TTL = 600; // 10 minutes — matches the API's OTP_TTL_MS
+const RESEND_COOLDOWN = 30; // seconds before "Resend" is allowed again
 
 /** Styled, self-contained sign-in / sign-up card: email+password, Google, and
  *  email-OTP-confirmed registration. Calls onDone() once a session exists. */
@@ -20,6 +23,11 @@ export function AuthForms({ onDone }: { onDone: () => void }) {
   const [notice, setNotice] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
+  // Resend cooldown + code-expiry countdowns (shared by both OTP flows).
+  const cooldown = useCountdown();
+  const expiry = useCountdown();
+  const expired = expiry.armed && expiry.remaining === 0;
+
   const set = (k: keyof typeof form) => (e: React.ChangeEvent<HTMLInputElement>) => setForm((f) => ({ ...f, [k]: e.target.value }));
 
   async function run(fn: () => Promise<void>) {
@@ -32,6 +40,13 @@ export function AuthForms({ onDone }: { onDone: () => void }) {
     } finally {
       setBusy(false);
     }
+  }
+
+  // Fresh code was just issued — reset the OTP field and (re)start both timers.
+  function onCodeIssued(devCode?: string) {
+    setOtp(devCode ?? '');
+    cooldown.start(RESEND_COOLDOWN);
+    expiry.start(OTP_TTL);
   }
 
   const login = (e: React.FormEvent) => {
@@ -52,7 +67,7 @@ export function AuthForms({ onDone }: { onDone: () => void }) {
         password: form.password,
       });
       setPendingToken(res.pendingToken);
-      setOtp(res.devCode ?? '');
+      onCodeIssued(res.devCode);
       setNotice(res.devCode ? `Dev mode — your code is ${res.devCode} (email not configured).` : `We sent a 6-digit code to ${form.email}.`);
       setView('otp');
     });
@@ -75,7 +90,7 @@ export function AuthForms({ onDone }: { onDone: () => void }) {
         password: form.password,
       });
       setPendingToken(res.pendingToken);
-      if (res.devCode) setOtp(res.devCode);
+      onCodeIssued(res.devCode);
       setNotice(res.devCode ? `Dev mode — your code is ${res.devCode} (email not configured).` : `A new code was sent to ${form.email}.`);
     });
 
@@ -97,9 +112,9 @@ export function AuthForms({ onDone }: { onDone: () => void }) {
   const startReset = (e?: React.FormEvent) => {
     e?.preventDefault();
     run(async () => {
-      const res = await api.post<{ pendingToken: string; devCode?: string }>('/store/account/reset/start', { identifier: form.identifier });
+      const res = await api.post<{ pendingToken: string; devCode?: string }>('/store/account/reset/start', { email: form.identifier });
       setPendingToken(res.pendingToken);
-      setOtp(res.devCode ?? '');
+      onCodeIssued(res.devCode);
       setResetSent(true);
       setNotice(res.devCode ? `Dev mode — your code is ${res.devCode} (email not configured).` : `If an account exists, we sent a reset code to its email.`);
     });
@@ -150,7 +165,7 @@ export function AuthForms({ onDone }: { onDone: () => void }) {
             {view === 'login' ? (
               <form onSubmit={login} className="space-y-3">
                 <Field icon={<Mail size={16} />} type="text" placeholder="Email or phone" value={form.identifier} onChange={set('identifier')} autoComplete="username" required />
-                <Field icon={<Lock size={16} />} type="password" placeholder="Password" value={form.password} onChange={set('password')} autoComplete="current-password" required />
+                <PasswordField placeholder="Password" value={form.password} onChange={set('password')} autoComplete="current-password" required />
                 <div className="text-right">
                   <button type="button" onClick={openReset} className="text-xs font-medium text-[#8a6d1f] hover:underline">
                     Forgot password?
@@ -163,8 +178,8 @@ export function AuthForms({ onDone }: { onDone: () => void }) {
                 <Field icon={<User size={16} />} type="text" placeholder="Full name" value={form.name} onChange={set('name')} autoComplete="name" />
                 <Field icon={<Phone size={16} />} type="tel" placeholder="Phone number" value={form.phone} onChange={set('phone')} autoComplete="tel" required />
                 <Field icon={<Mail size={16} />} type="email" placeholder="Email address" value={form.email} onChange={set('email')} autoComplete="email" required />
-                <Field icon={<Lock size={16} />} type="password" placeholder="Password (min 8 characters)" value={form.password} onChange={set('password')} autoComplete="new-password" required minLength={8} />
-                <SubmitButton busy={busy}>Continue</SubmitButton>
+                <PasswordField placeholder="Password (min 8 characters)" value={form.password} onChange={set('password')} autoComplete="new-password" required minLength={8} strength />
+                <SubmitButton busy={busy} disabled={form.password.length < 8}>Continue</SubmitButton>
                 <p className="text-center text-[11px] leading-relaxed text-stone-400">We&apos;ll email you a code to confirm your address. By continuing you agree to our <a href="/pages/terms-of-service" className="underline">Terms</a> and <a href="/pages/privacy-policy" className="underline">Privacy Policy</a>.</p>
               </form>
             )}
@@ -177,34 +192,25 @@ export function AuthForms({ onDone }: { onDone: () => void }) {
             <header className="mb-6 text-center">
               <span className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-[#faf5e6] text-[#8a6d1f]"><Lock size={22} /></span>
               <h1 className="mt-3 font-display text-2xl font-bold">Reset your password</h1>
-              <p className="mt-1 text-sm text-stone-500">{notice ?? (resetSent ? 'Enter the code we emailed you and choose a new password.' : "Enter your email or phone and we'll send a reset code.")}</p>
+              <p className="mt-1 text-sm text-stone-500">{notice ?? (resetSent ? 'Enter the code we emailed you and choose a new password.' : "Enter your email and we'll send a reset code.")}</p>
             </header>
 
             {error && <ErrorNote message={error} />}
 
             {!resetSent ? (
               <form onSubmit={startReset} className="space-y-3">
-                <Field icon={<Mail size={16} />} type="text" placeholder="Email or phone" value={form.identifier} onChange={set('identifier')} autoComplete="username" required />
+                <Field icon={<Mail size={16} />} type="email" placeholder="Email address" value={form.identifier} onChange={set('identifier')} autoComplete="email" required />
                 <SubmitButton busy={busy}>Send reset code</SubmitButton>
               </form>
             ) : (
               <>
                 <form onSubmit={verifyReset} className="space-y-4">
-                  <input
-                    inputMode="numeric"
-                    autoFocus
-                    maxLength={6}
-                    value={otp}
-                    onChange={(e) => setOtp(e.target.value.replace(/\D/g, '').slice(0, 6))}
-                    placeholder="••••••"
-                    className="h-14 w-full rounded-xl border border-stone-300 text-center text-2xl font-semibold tracking-[0.5em] outline-none focus:border-stone-900"
-                  />
-                  <Field icon={<Lock size={16} />} type="password" placeholder="New password (min 8 characters)" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} autoComplete="new-password" required minLength={8} />
-                  <SubmitButton busy={busy} disabled={otp.length !== 6 || newPassword.length < 8}>Reset password</SubmitButton>
+                  <OtpBoxes value={otp} onChange={setOtp} autoFocus disabled={expired} />
+                  {expired && <ExpiredNote />}
+                  <PasswordField placeholder="New password (min 8 characters)" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} autoComplete="new-password" required minLength={8} strength />
+                  <SubmitButton busy={busy} disabled={otp.length !== 6 || newPassword.length < 8 || expired}>Reset password</SubmitButton>
                 </form>
-                <button type="button" onClick={() => startReset()} disabled={busy} className="mt-4 w-full text-center text-sm text-[#8a6d1f] hover:underline disabled:opacity-50">
-                  Didn&apos;t get it? Resend code
-                </button>
+                <ResendRow cooldown={cooldown.remaining} busy={busy} onResend={() => startReset()} />
               </>
             )}
           </>
@@ -217,30 +223,173 @@ export function AuthForms({ onDone }: { onDone: () => void }) {
               <span className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-[#faf5e6] text-[#8a6d1f]"><ShieldCheck size={24} /></span>
               <h1 className="mt-3 font-display text-2xl font-bold">Verify your email</h1>
               <p className="mt-1 text-sm text-stone-500">{notice ?? 'Enter the 6-digit code we sent you.'}</p>
+              <p className="mt-1 text-xs font-medium text-stone-400">{form.email}</p>
             </header>
 
             {error && <ErrorNote message={error} />}
 
             <form onSubmit={verifyOtp} className="space-y-4">
-              <input
-                inputMode="numeric"
-                autoFocus
-                maxLength={6}
-                value={otp}
-                onChange={(e) => setOtp(e.target.value.replace(/\D/g, '').slice(0, 6))}
-                placeholder="••••••"
-                className="h-14 w-full rounded-xl border border-stone-300 text-center text-2xl font-semibold tracking-[0.5em] outline-none focus:border-stone-900"
-              />
-              <SubmitButton busy={busy} disabled={otp.length !== 6}>Verify &amp; create account</SubmitButton>
+              <OtpBoxes value={otp} onChange={setOtp} autoFocus disabled={expired} />
+              {expired ? <ExpiredNote /> : <p className="text-center text-xs text-stone-400">Code expires in {formatMMSS(expiry.remaining)}</p>}
+              <SubmitButton busy={busy} disabled={otp.length !== 6 || expired}>Verify &amp; create account</SubmitButton>
             </form>
-            <button type="button" onClick={resend} disabled={busy} className="mt-4 w-full text-center text-sm text-[#8a6d1f] hover:underline disabled:opacity-50">
-              Didn&apos;t get it? Resend code
+
+            <ResendRow cooldown={cooldown.remaining} busy={busy} onResend={resend} />
+            <button type="button" onClick={() => { setView('register'); setError(null); setNotice(null); }} className="mt-2 w-full text-center text-xs text-stone-400 hover:text-stone-700">
+              Wrong address? Change email address
             </button>
           </>
         )}
       </div>
     </div>
   );
+}
+
+/** Six single-digit inputs with auto-advance, backspace-to-previous and paste-to-fill. */
+function OtpBoxes({ value, onChange, autoFocus, disabled }: { value: string; onChange: (v: string) => void; autoFocus?: boolean; disabled?: boolean }) {
+  const refs = useRef<Array<HTMLInputElement | null>>([]);
+
+  useEffect(() => {
+    if (autoFocus) refs.current[0]?.focus();
+  }, [autoFocus]);
+
+  const setAt = (i: number, digit: string) => {
+    const next = (value.slice(0, i) + digit + value.slice(i + 1)).slice(0, 6);
+    onChange(next);
+    return next;
+  };
+
+  return (
+    <div className="flex justify-between gap-2" onPaste={(e) => {
+      const pasted = e.clipboardData.getData('text').replace(/\D/g, '').slice(0, 6);
+      if (!pasted) return;
+      e.preventDefault();
+      onChange(pasted);
+      refs.current[Math.min(pasted.length, 5)]?.focus();
+    }}>
+      {Array.from({ length: 6 }, (_, i) => (
+        <input
+          key={i}
+          ref={(el) => { refs.current[i] = el; }}
+          inputMode="numeric"
+          autoComplete={i === 0 ? 'one-time-code' : 'off'}
+          maxLength={1}
+          disabled={disabled}
+          value={value[i] ?? ''}
+          onChange={(e) => {
+            const digit = e.target.value.replace(/\D/g, '').slice(-1);
+            if (!digit) return;
+            setAt(i, digit);
+            if (i < 5) refs.current[i + 1]?.focus();
+          }}
+          onKeyDown={(e) => {
+            if (e.key === 'Backspace') {
+              e.preventDefault();
+              if (value[i]) setAt(i, '');
+              else if (i > 0) { onChange(value.slice(0, i - 1) + value.slice(i)); refs.current[i - 1]?.focus(); }
+            } else if (e.key === 'ArrowLeft' && i > 0) refs.current[i - 1]?.focus();
+            else if (e.key === 'ArrowRight' && i < 5) refs.current[i + 1]?.focus();
+          }}
+          className="h-14 w-full min-w-0 rounded-xl border border-stone-300 text-center text-2xl font-semibold text-stone-900 outline-none focus:border-stone-900 disabled:bg-stone-100 disabled:text-stone-400"
+        />
+      ))}
+    </div>
+  );
+}
+
+function ResendRow({ cooldown, busy, onResend }: { cooldown: number; busy: boolean; onResend: () => void }) {
+  return (
+    <button
+      type="button"
+      onClick={onResend}
+      disabled={busy || cooldown > 0}
+      className="mt-4 w-full text-center text-sm text-[#8a6d1f] hover:underline disabled:cursor-not-allowed disabled:text-stone-400 disabled:no-underline"
+    >
+      {cooldown > 0 ? `Didn't get it? Resend in ${cooldown}s` : "Didn't get it? Resend code"}
+    </button>
+  );
+}
+
+function ExpiredNote() {
+  return (
+    <p className="flex items-center justify-center gap-1.5 text-center text-xs font-medium text-red-600">
+      <AlertCircle size={14} /> Your verification code has expired. Please request a new one.
+    </p>
+  );
+}
+
+/** Password input with a show/hide toggle and an optional strength meter. */
+function PasswordField({ value, onChange, strength, ...props }: {
+  value: string;
+  onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  strength?: boolean;
+} & Omit<React.InputHTMLAttributes<HTMLInputElement>, 'value' | 'onChange' | 'type'>) {
+  const [show, setShow] = useState(false);
+  const pw = String(value ?? '');
+  const s = scorePassword(pw);
+  return (
+    <div>
+      <div className="flex items-center gap-2 rounded-xl border border-stone-300 bg-white px-3 transition-colors focus-within:border-stone-900">
+        <span className="text-stone-400"><Lock size={16} /></span>
+        <input {...props} type={show ? 'text' : 'password'} value={value} onChange={onChange} className="h-11 w-full bg-transparent text-sm outline-none placeholder:text-stone-400" />
+        <button type="button" tabIndex={-1} onClick={() => setShow((v) => !v)} className="text-stone-400 hover:text-stone-700" aria-label={show ? 'Hide password' : 'Show password'}>
+          {show ? <EyeOff size={16} /> : <Eye size={16} />}
+        </button>
+      </div>
+      {strength && pw.length > 0 && (
+        <div className="mt-1.5 flex items-center gap-2">
+          <div className="flex flex-1 gap-1">
+            {[0, 1, 2, 3].map((i) => (
+              <span key={i} className={`h-1 flex-1 rounded-full ${i < s.score ? s.bar : 'bg-stone-200'}`} />
+            ))}
+          </div>
+          <span className={`w-16 shrink-0 text-right text-[11px] font-medium ${s.text}`}>{s.label}</span>
+        </div>
+      )}
+    </div>
+  );
+}
+
+/** Lightweight 0–4 strength score (length + character-class variety). */
+function scorePassword(pw: string): { score: number; label: string; bar: string; text: string } {
+  if (!pw) return { score: 0, label: '', bar: 'bg-stone-200', text: 'text-stone-400' };
+  let score = 0;
+  if (pw.length >= 8) score++;
+  if (pw.length >= 12) score++;
+  if (/[A-Z]/.test(pw) && /[a-z]/.test(pw)) score++;
+  if (/\d/.test(pw) && /[^A-Za-z0-9]/.test(pw)) score++;
+  score = Math.min(4, score || (pw.length >= 4 ? 1 : 1));
+  const tiers = [
+    { label: 'Weak', bar: 'bg-red-500', text: 'text-red-600' },
+    { label: 'Weak', bar: 'bg-red-500', text: 'text-red-600' },
+    { label: 'Fair', bar: 'bg-amber-500', text: 'text-amber-600' },
+    { label: 'Good', bar: 'bg-lime-500', text: 'text-lime-600' },
+    { label: 'Strong', bar: 'bg-emerald-500', text: 'text-emerald-600' },
+  ];
+  return { score, ...tiers[score] };
+}
+
+/** Countdown driven by wall-clock so it survives re-renders. `armed` is true once started. */
+function useCountdown() {
+  const [target, setTarget] = useState<number | null>(null);
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => {
+    if (target == null) return;
+    const t = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(t);
+  }, [target]);
+  const remaining = target == null ? 0 : Math.max(0, Math.round((target - now) / 1000));
+  return {
+    remaining,
+    armed: target != null,
+    start: (secs: number) => { const n = Date.now(); setNow(n); setTarget(n + secs * 1000); },
+  };
+}
+
+function formatMMSS(secs: number) {
+  const m = Math.floor(secs / 60);
+  const s = secs % 60;
+  return `${m}:${String(s).padStart(2, '0')}`;
 }
 
 function Field({ icon, ...props }: { icon: React.ReactNode } & React.InputHTMLAttributes<HTMLInputElement>) {

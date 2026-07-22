@@ -1,10 +1,9 @@
 import Link from 'next/link';
 import {
   ArrowRight,
-  Brush,
-  Footprints,
+  Flame,
   Layers,
-  ShoppingBag,
+  Shirt,
   Sparkles,
   SprayCan,
   type LucideIcon,
@@ -15,12 +14,12 @@ type Category = { id: string; name: string; slug: string; parentId: string | nul
 /** Curated storefront categories for this promo. Icons are graceful
  *  fallbacks when a matching catalogue category has no image yet. */
 const CATEGORIES: { label: string; icon: LucideIcon }[] = [
-  { label: 'Laces & Veils', icon: Sparkles },
-  { label: 'Fabric', icon: Layers },
-  { label: 'Bags', icon: ShoppingBag },
-  { label: 'Cosmetics', icon: Brush },
+  { label: 'Luxury Lace', icon: Sparkles },
+  { label: 'Premium Atampa', icon: Layers },
+  { label: 'Swiss Voile', icon: Layers },
+  { label: "Men's Fabrics", icon: Shirt },
   { label: 'Perfumes', icon: SprayCan },
-  { label: 'Shoes', icon: Footprints },
+  { label: 'Incense', icon: Flame },
 ];
 
 /** Resolve a display label to a real category link, else a search fallback
@@ -65,7 +64,7 @@ function CategoryTile({ label, icon: Icon, categories }: { label: string; icon: 
  * (right). When MIM is off: the MIM panel is dropped and the category grid fills
  * the whole section.
  */
-export function OwambeEdit({ categories = [], mimEnabled = true }: { categories?: Category[]; mimEnabled?: boolean }) {
+export function OwambeEdit({ categories = [], mimEnabled = true, mimProducts = [] }: { categories?: Category[]; mimEnabled?: boolean; mimProducts?: { image: string; name: string }[] }) {
   // MIM off — the "MIM's ready" panel is hidden, so let the categories fill the row.
   if (!mimEnabled) {
     return (
@@ -89,21 +88,33 @@ export function OwambeEdit({ categories = [], mimEnabled = true }: { categories?
       </div>
 
       <div className="grid gap-6 lg:grid-cols-2">
-        {/* ── Right (lg): brand promo + featured looks ───────────────── */}
-        <div className="overflow-hidden bg-accent-100 p-4 sm:p-5 md:p-6 lg:order-2">
-          <div className="flex flex-wrap items-center justify-between gap-4">
-            <div>
-              <p className="font-display text-3xl font-bold italic leading-none text-accent-900 md:text-4xl">MIM&apos;s ready.</p>
-              <p className="mt-2 max-w-xs text-sm text-stone-700">Custom printed shirts, jerseys &amp; more — printing for every occasion.</p>
-              <Link
-                href="/mim"
-                className="mt-4 inline-flex items-center gap-1.5 rounded-md bg-stone-900 px-5 py-2.5 text-sm font-medium text-white transition-colors hover:bg-stone-700"
-              >
-                Shop now <ArrowRight size={15} />
-              </Link>
+        {/* ── Right (lg): MIM promo — copy + CTA, then featured products offset
+             20px diagonally from the "Shop now" button's bottom-left ── */}
+        <div className="relative bg-accent-100 p-4 sm:p-5 md:p-6 lg:order-2">
+          <Sparkles className="pointer-events-none absolute right-3 top-3 z-10 text-accent-600/40" size={40} strokeWidth={1.2} aria-hidden />
+          <p className="font-display text-3xl font-bold italic leading-none text-accent-900 md:text-4xl">MIM&apos;s ready.</p>
+          <p className="mt-2 max-w-xs text-sm text-stone-700">Custom printed shirts, jerseys &amp; more — printing for every occasion.</p>
+          <Link
+            href="/mim"
+            className="mt-4 inline-flex items-center gap-1.5 rounded-md bg-stone-900 px-5 py-2.5 text-sm font-medium text-white transition-colors hover:bg-stone-700"
+          >
+            Shop now <ArrowRight size={15} />
+          </Link>
+          {mimProducts.length ? (
+            // 3-column grid below the button; fits the panel width.
+            <div className="mt-5 grid grid-cols-3 gap-4 md:gap-5">
+              {mimProducts.map((p, i) => (
+                <Link key={i} href="/mim" className="block">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={p.image}
+                    alt={p.name || 'MIM custom printing'}
+                    className="aspect-[3/4] w-full rounded-md object-cover shadow-md ring-1 ring-black/5"
+                  />
+                </Link>
+              ))}
             </div>
-            <Sparkles className="hidden shrink-0 text-accent-600/40 sm:block" size={72} strokeWidth={1.2} aria-hidden />
-          </div>
+          ) : null}
         </div>
 
         {/* ── Left (lg): category grid — 2 columns × 3 rows ──────────── */}

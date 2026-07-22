@@ -20,6 +20,9 @@ import { ReviewsModule } from './reviews/reviews.module';
 import { AnkoModule } from './anko/anko.module';
 import { ContactModule } from './contact/contact.module';
 import { WalletModule } from './wallet/wallet.module';
+import { NewsletterModule } from './newsletter/newsletter.module';
+import { PartnershipModule } from './partnership/partnership.module';
+import { CollectionsModule } from './collections/collections.module';
 
 @Module({
   imports: [
@@ -44,6 +47,9 @@ import { WalletModule } from './wallet/wallet.module';
     AnkoModule,
     ContactModule,
     WalletModule,
+    NewsletterModule,
+    PartnershipModule,
+    CollectionsModule,
   ],
 })
 export class AppModule {}

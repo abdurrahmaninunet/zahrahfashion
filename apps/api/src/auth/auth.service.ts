@@ -20,7 +20,7 @@ const LOCKOUT_MINUTES = 15; // FR-AUTH-01 defaults
 const STEP_UP_MINUTES = 10;
 const PENDING_2FA_TTL_MS = 5 * 60_000;
 const LOGIN_OTP_TTL_MS = 10 * 60_000; // email login code lifetime
-const RESEND_FROM_DEFAULT = 'Zahrah Fashion <onboarding@resend.dev>';
+const RESEND_FROM_DEFAULT = 'Zahrah Fashion Hub <onboarding@resend.dev>';
 
 // Minimal common-password screen (FR-AUTH-04's breach check is an online
 // service in production; locally we block the obvious offenders).

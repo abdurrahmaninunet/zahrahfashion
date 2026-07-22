@@ -151,6 +151,12 @@ function DetailsTab({ product, onSave, saving, onGoToVariants }: { product: Prod
   const [flags, setFlags] = useState<Record<string, boolean>>((product.flags as Record<string, boolean>) ?? {});
   const [newDetail, setNewDetail] = useState({ name: '', value: '' });
 
+  // Collections the product can be assigned to (via attributeValues._collectionId).
+  const { data: collections } = useQuery({
+    queryKey: ['collections'],
+    queryFn: () => api.get<{ id: string; name: string; slug: string }[]>('/collections'),
+  });
+
   // Free-form custom details (name/value) stored under the reserved "_custom" key.
   const customDetails = (Array.isArray(attributeValues._custom) ? attributeValues._custom : []) as { name: string; value: unknown }[];
 
@@ -308,6 +314,16 @@ function DetailsTab({ product, onSave, saving, onGoToVariants }: { product: Prod
               storefront. Ignored when sell formats are configured.
             </p>
           </div>
+          {/* Curated storefront collections — ticked products appear (shuffled) on these nav pages. */}
+          <div className="border-t border-stone-200 pt-3">
+            <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-stone-500">Storefront collections</p>
+            <div className="flex flex-wrap gap-4">
+              {([['mens', "Men's Collection"], ['luxuryLace', 'Luxury Lace'], ['perfumes', 'Perfumes']] as const).map(([flag, label]) => (
+                <Checkbox key={flag} label={label} checked={!!flags[flag]} onChange={(e) => setFlags({ ...flags, [flag]: e.target.checked })} />
+              ))}
+            </div>
+            <p className="mt-1 text-xs text-stone-400">Ticked products show, shuffled, on the matching storefront collection page (Men&apos;s Collection, Luxury Lace, Perfumes).</p>
+          </div>
         </div>
       </Card>
       <Card title={`${product.category.name} attributes`}>
@@ -355,6 +371,37 @@ function DetailsTab({ product, onSave, saving, onGoToVariants }: { product: Prod
             );
           })}
           {!product.category.attributes.length && <p className="text-sm text-stone-400">This category defines no attributes.</p>}
+
+          {/* Collection, colour & occasions — drive discovery + search. Stored as
+              reserved attributeValues keys, no taxonomy change required. */}
+          <div className="border-t border-stone-200 pt-3">
+            <p className="mb-2 text-sm font-medium text-stone-700">Collection, colour &amp; occasions</p>
+            <div className="grid gap-3 sm:grid-cols-3">
+              <Field label="Collection">
+                <Select
+                  value={(attributeValues._collectionId as string) ?? ''}
+                  onChange={(e) => setAttributeValues({ ...attributeValues, _collectionId: e.target.value || undefined })}
+                >
+                  <option value="">— none —</option>
+                  {(collections ?? []).map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+                </Select>
+              </Field>
+              <Field label="Colour" hint="e.g. Royal Blue">
+                <Input
+                  value={(attributeValues._colour as string) ?? ''}
+                  onChange={(e) => setAttributeValues({ ...attributeValues, _colour: e.target.value || undefined })}
+                  placeholder="Royal Blue"
+                />
+              </Field>
+              <Field label="Occasions" hint="comma-separated">
+                <Input
+                  value={(attributeValues._occasions as string) ?? ''}
+                  onChange={(e) => setAttributeValues({ ...attributeValues, _occasions: e.target.value || undefined })}
+                  placeholder="Wedding, Eid, Party"
+                />
+              </Field>
+            </div>
+          </div>
 
           {/* Custom details — free-form key/value specs shown on the storefront
               product page, no taxonomy change required. */}

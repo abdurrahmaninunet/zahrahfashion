@@ -3,12 +3,12 @@
 import Link from 'next/link';
 import { useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { ChevronLeft } from 'lucide-react';
+import { BadgeCheck, ChevronLeft, Mail } from 'lucide-react';
 import { api, ApiError } from '@/lib/api';
 import { naira, formatDate } from '@/lib/format';
 import { AuthForms } from '@/components/auth/auth-forms';
 
-export interface Me { customer: { id: string; fullName: string; phone: string; email: string | null; hasPassword?: boolean; consentNow: Record<string, string> } | null }
+export interface Me { customer: { id: string; fullName: string; phone: string; email: string | null; hasPassword?: boolean; emailVerified?: boolean; memberSince?: string; consentNow: Record<string, string> } | null }
 interface OrderRow { id: string; orderNumber: string; placedAt: string; total: number; status: string; itemsSummary: string; trackingUrl: string }
 interface Address { id: string; label: string | null; addressLine: string; area: string | null; isDefault: boolean }
 
@@ -30,13 +30,8 @@ export function AccountShell({ title, showBack, children }: { title: string; sho
 
   return (
     <div className="mx-auto max-w-3xl px-4 py-8">
-      <div className="flex items-start justify-between gap-3">
-        <div>
-          <h1 className="font-display text-2xl font-bold">{title}</h1>
-          <p className="mt-0.5 text-sm text-stone-500">
-            Hi, {customer.fullName.split(' ')[0]} · {customer.phone}{customer.email ? ` · ${customer.email}` : ''}
-          </p>
-        </div>
+      <div className="flex items-center justify-between gap-3">
+        <h1 className="font-display text-2xl font-bold">{title}</h1>
         <button className="shrink-0 text-sm text-stone-400 hover:text-stone-800 cursor-pointer"
           onClick={async () => { await api.post('/store/account/logout'); onChanged(); }}>
           Sign out
@@ -136,18 +131,41 @@ export function ProfileTab({ customer, onChanged }: { customer: NonNullable<Me['
     ['marketing_sms', 'SMS updates'],
   ] as const;
 
+  const memberSince = customer.memberSince
+    ? new Date(customer.memberSince).toLocaleDateString('en-GB', { month: 'long', year: 'numeric' })
+    : null;
+
   return (
     <div className="space-y-4">
+      {/* Identity summary */}
+      <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-stone-200 bg-white p-4">
+        <div>
+          <p className="font-semibold text-stone-900">{customer.fullName}</p>
+          {memberSince && <p className="mt-0.5 text-xs text-stone-400">Member since {memberSince}</p>}
+        </div>
+        {customer.emailVerified ? (
+          <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-700">
+            <BadgeCheck size={14} /> Verified account
+          </span>
+        ) : (
+          <span className="inline-flex items-center gap-1.5 rounded-full bg-amber-50 px-3 py-1 text-xs font-semibold text-amber-700">
+            Unverified
+          </span>
+        )}
+      </div>
+
       <div className="rounded-xl border border-stone-200 bg-white p-4">
         <label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-stone-500">Your name</label>
         <div className="flex gap-2">
           <input className="h-11 w-full rounded-md border border-stone-200 px-3 text-sm outline-none focus:border-[#8a6d1f]" value={name} onChange={(e) => setName(e.target.value)} />
-          <button className="h-11 shrink-0 rounded-md bg-stone-900 px-4 text-sm font-semibold text-white cursor-pointer"
-            onClick={async () => { await api.put('/store/account/profile', { fullName: name }); setSaved(true); setTimeout(() => setSaved(false), 1500); onChanged(); }}>
-            {saved ? '✓' : 'Save'}
+          <button className="h-11 shrink-0 rounded-md bg-stone-900 px-4 text-sm font-semibold text-white cursor-pointer disabled:opacity-50"
+            disabled={!name.trim() || name.trim() === customer.fullName}
+            onClick={async () => { await api.put('/store/account/profile', { fullName: name.trim() }); setSaved(true); setTimeout(() => setSaved(false), 1500); onChanged(); }}>
+            {saved ? '✓ Saved' : 'Save'}
           </button>
         </div>
       </div>
+      <ChangeEmailCard customer={customer} onChanged={onChanged} />
       {customer.hasPassword && <ChangePasswordCard />}
       <div className="rounded-xl border border-stone-200 bg-white p-4">
         <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-stone-500">Marketing preferences</p>
@@ -167,6 +185,88 @@ export function ProfileTab({ customer, onChanged }: { customer: NonNullable<Me['
         <p className="mt-2 text-[11px] text-stone-400">You can change these anytime. We never share your data.</p>
       </div>
       <DeleteAccountCard customer={customer} />
+    </div>
+  );
+}
+
+/**
+ * Email address, shown read-only. "Change" opens a two-step flow: enter a new
+ * address → we email a 6-digit code to it → confirm to move the email across.
+ * Verifying the NEW inbox stops anyone taking over the account.
+ */
+function ChangeEmailCard({ customer, onChanged }: { customer: NonNullable<Me['customer']>; onChanged: () => void }) {
+  const [open, setOpen] = useState(false);
+  const [step, setStep] = useState<'form' | 'otp' | 'done'>('form');
+  const [newEmail, setNewEmail] = useState('');
+  const [pendingToken, setPendingToken] = useState('');
+  const [devCode, setDevCode] = useState<string | null>(null);
+  const [code, setCode] = useState('');
+  const [error, setError] = useState<string | null>(null);
+
+  const reset = () => { setStep('form'); setNewEmail(''); setPendingToken(''); setDevCode(null); setCode(''); setError(null); };
+
+  const start = useMutation({
+    mutationFn: () => api.post<{ pendingToken: string; devCode?: string }>('/store/account/email/change/start', { email: newEmail.trim() }),
+    onSuccess: (d) => { setPendingToken(d.pendingToken); setDevCode(d.devCode ?? null); setCode(d.devCode ?? ''); setError(null); setStep('otp'); },
+    onError: (e) => setError((e as ApiError)?.message ?? 'Could not send the code'),
+  });
+  const verify = useMutation({
+    mutationFn: () => api.post('/store/account/email/change/verify', { pendingToken, code }),
+    onSuccess: () => { setError(null); setStep('done'); onChanged(); },
+    onError: (e) => setError((e as ApiError)?.message ?? 'Could not confirm the code'),
+  });
+
+  const input = 'h-11 w-full rounded-md border border-stone-200 px-3 text-sm outline-none focus:border-[#8a6d1f]';
+
+  return (
+    <div className="rounded-xl border border-stone-200 bg-white p-4">
+      <div className="flex items-center justify-between">
+        <p className="text-xs font-semibold uppercase tracking-wide text-stone-500">Email address</p>
+        {!open && (
+          <button className="text-sm font-medium text-[#8a6d1f] hover:underline cursor-pointer" onClick={() => { reset(); setOpen(true); }}>
+            Change email
+          </button>
+        )}
+      </div>
+
+      {!open ? (
+        <p className="mt-1 flex items-center gap-2 text-sm text-stone-700">
+          <Mail size={15} className="text-stone-400" /> {customer.email ?? 'No email on file'}
+          {customer.emailVerified && <BadgeCheck size={14} className="text-emerald-600" />}
+        </p>
+      ) : step === 'done' ? (
+        <div className="mt-3">
+          <p className="rounded-md bg-emerald-50 px-3 py-3 text-sm font-medium text-emerald-700">✓ Your email address has been updated and verified.</p>
+          <button className="mt-3 text-sm text-stone-500 hover:text-stone-800 cursor-pointer" onClick={() => setOpen(false)}>Close</button>
+        </div>
+      ) : step === 'form' ? (
+        <div className="mt-3 space-y-2">
+          <p className="text-sm text-stone-500">Enter your new email address. We&apos;ll send a code there to confirm it&apos;s yours.</p>
+          <input type="email" autoFocus className={input} placeholder="new@email.com" value={newEmail} onChange={(e) => setNewEmail(e.target.value)} />
+          {error && <p className="text-xs text-red-600">{error}</p>}
+          <div className="flex gap-2 pt-1">
+            <button disabled={!/^\S+@\S+\.\S+$/.test(newEmail.trim()) || start.isPending} onClick={() => start.mutate()}
+              className="h-11 rounded-md bg-stone-900 px-4 text-sm font-semibold text-white disabled:opacity-50 cursor-pointer">
+              {start.isPending ? 'Sending code…' : 'Send code'}
+            </button>
+            <button className="h-11 rounded-md border border-stone-200 px-4 text-sm text-stone-600 cursor-pointer" onClick={() => setOpen(false)}>Cancel</button>
+          </div>
+        </div>
+      ) : (
+        <div className="mt-3 space-y-2">
+          <p className="text-sm text-stone-500">Enter the 6-digit code we sent to <b>{newEmail.trim()}</b>.</p>
+          {devCode && <p className="text-xs text-stone-400">Dev code: <b className="tabular tracking-widest text-stone-600">{devCode}</b></p>}
+          <input inputMode="numeric" maxLength={6} className={`${input} tracking-[0.4em]`} placeholder="000000" value={code} onChange={(e) => setCode(e.target.value.replace(/\D/g, '').slice(0, 6))} />
+          {error && <p className="text-xs text-red-600">{error}</p>}
+          <div className="flex gap-2 pt-1">
+            <button disabled={code.length !== 6 || verify.isPending} onClick={() => verify.mutate()}
+              className="h-11 rounded-md bg-stone-900 px-4 text-sm font-semibold text-white disabled:opacity-50 cursor-pointer">
+              {verify.isPending ? 'Confirming…' : 'Confirm new email'}
+            </button>
+            <button className="h-11 rounded-md border border-stone-200 px-4 text-sm text-stone-600 cursor-pointer" onClick={() => { setStep('form'); setError(null); }}>Back</button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

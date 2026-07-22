@@ -29,7 +29,7 @@ export default function StoreProfilePage() {
 
   const [form, setForm] = useState({
     name: '', phone: '', whatsapp: '', email: '', address: '',
-    instagram: '', facebook: '', tiktok: '',
+    instagram: '', facebook: '', tiktok: '', fabricsCount: '',
   });
 
   useEffect(() => {
@@ -45,6 +45,7 @@ export default function StoreProfilePage() {
       instagram: social.instagram ?? '',
       facebook: social.facebook ?? '',
       tiktok: social.tiktok ?? '',
+      fabricsCount: String((get('homepage.fabrics_count') as number) ?? 1000),
     });
   }, [data]);
 
@@ -67,6 +68,8 @@ export default function StoreProfilePage() {
         tiktok: form.tiktok.trim().replace(/^@/, ''),
       };
       pushIf('store.social', get('store.social'), social);
+      const fabrics = Math.round(Number(form.fabricsCount));
+      pushIf('homepage.fabrics_count', get('homepage.fabrics_count'), Number.isFinite(fabrics) && fabrics > 0 ? fabrics : 1000);
       await Promise.all(puts);
     },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['settings-profile'] }),
@@ -83,7 +86,7 @@ export default function StoreProfilePage() {
 
       <Card>
         <div className="space-y-4">
-          <Field label="Store name"><Input value={form.name} onChange={set('name')} disabled={!canEdit} placeholder="Zahra Fashion" /></Field>
+          <Field label="Store name"><Input value={form.name} onChange={set('name')} disabled={!canEdit} placeholder="Zahrah Fashion Hub" /></Field>
 
           <div className="grid gap-4 sm:grid-cols-2">
             <Field label="Contact phone"><Input value={form.phone} onChange={set('phone')} disabled={!canEdit} placeholder="0803 123 4567" /></Field>
@@ -94,6 +97,16 @@ export default function StoreProfilePage() {
 
           <Field label="Contact email"><Input type="email" value={form.email} onChange={set('email')} disabled={!canEdit} placeholder="hello@zahrahfashion.com" /></Field>
           <Field label="Physical address"><Textarea rows={2} value={form.address} onChange={set('address')} disabled={!canEdit} placeholder="Street, area, city" /></Field>
+
+          <div className="border-t border-stone-100 pt-4">
+            <p className="text-sm font-semibold text-stone-700">Homepage</p>
+            <p className="mt-1 text-xs text-stone-400">Powers the storefront band “Over N premium fabrics”.</p>
+            <div className="mt-3 max-w-xs">
+              <Field label="Premium fabrics count" hint="Whole number, e.g. 1000">
+                <Input type="number" min={0} step={1} value={form.fabricsCount} onChange={set('fabricsCount')} disabled={!canEdit} placeholder="1000" />
+              </Field>
+            </div>
+          </div>
 
           <div className="border-t border-stone-100 pt-4">
             <p className="text-sm font-semibold text-stone-700">Social handles</p>

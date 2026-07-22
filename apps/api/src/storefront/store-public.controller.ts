@@ -9,6 +9,8 @@ import { StoreSearchService } from './store-search.service';
 import { MediaService } from '../content/media.service';
 import { ReviewsService } from '../reviews/reviews.service';
 import { AnkoService } from '../anko/anko.service';
+import { CollectionsService } from '../collections/collections.service';
+import { NewsletterService } from '../newsletter/newsletter.service';
 import { parse } from '../common/zod';
 
 /**
@@ -26,7 +28,37 @@ export class StorePublicController {
     private media: MediaService,
     private reviews: ReviewsService,
     private anko: AnkoService,
+    private collections: CollectionsService,
+    private newsletter: NewsletterService,
   ) {}
+
+  /** Footer newsletter sign-up (public). */
+  @Post('newsletter')
+  subscribeNewsletter(@Body() body: unknown) {
+    const { email, source } = parse(z.object({ email: z.string().email(), source: z.string().max(40).optional() }), body);
+    return this.newsletter.subscribe(email, source ?? 'footer');
+  }
+
+  /** All collections (id, name, slug) for the /collections index + nav. */
+  @Get('collections')
+  listCollections() {
+    return this.collections.list();
+  }
+
+  /** A collection's products (paginated) — powers /collections/[slug]. */
+  @Get('collections/:slug')
+  async collection(@Param('slug') slug: string, @Query('page') page?: string) {
+    const col = await this.collections.bySlug(slug);
+    if (!col) throw new NotFoundException('Collection not found');
+    const listing = await this.catalog.listing({ collectionId: col.id, filters: {}, page: Number(page) || 1 });
+    return { collection: col, ...listing };
+  }
+
+  /** Newest products first — powers /new-arrivals. */
+  @Get('new-arrivals')
+  newArrivals(@Query('page') page?: string) {
+    return this.catalog.listing({ filters: {}, sort: 'newest', page: Number(page) || 1 });
+  }
 
   /** Slugs + timestamps for the storefront sitemap.xml (SEO). */
   @Get('sitemap')
@@ -92,7 +124,7 @@ export class StorePublicController {
       }),
       this.settings.getMany([
         'store.name', 'store.phone', 'store.whatsapp', 'store.email', 'store.address', 'store.social',
-        'notifications.whatsapp_chat', 'mim.enabled',
+        'notifications.whatsapp_chat', 'mim.enabled', 'homepage.fabrics_count',
       ]),
     ]);
     // POD promise renders only while POD is enabled somewhere (Homepage §3.7).
@@ -108,6 +140,7 @@ export class StorePublicController {
         social: store['store.social'],
       },
       mimEnabled: store['mim.enabled'] !== false,
+      homepage: { fabricsCount: Number(store['homepage.fabrics_count'] ?? 1000) || 1000 },
       podAvailable: podZones > 0,
       announcement: announcement ? { message: (announcement.fields as { message?: string }).message, link: (announcement.fields as { link?: { url?: string } }).link?.url ?? null } : null,
       categories,
@@ -248,6 +281,19 @@ export class StorePublicController {
   @Get('products/:slug')
   product(@Param('slug') slug: string) {
     return this.catalog.productDetail(slug);
+  }
+
+  /** "Customers who saved this also liked" — wishlist co-occurrence. */
+  @Get('also-liked')
+  alsoLiked(@Query('id') id?: string) {
+    if (!id) return { products: [] };
+    return this.catalog.alsoLiked(id);
+  }
+
+  /** Curated storefront collection (Men's Collection / Luxury Lace / Perfumes). */
+  @Get('curated/:key')
+  curated(@Param('key') key: string) {
+    return this.catalog.curated(key);
   }
 
   @Post('availability')

@@ -16,7 +16,7 @@ const OTP_TTL_MS = 10 * 60_000; // 10 minutes
 // IMPORTANT: env vars are read at *call time*, not at module load. ConfigModule
 // populates process.env during app bootstrap, which runs AFTER this module is
 // first imported — a top-level `const x = process.env.X` would capture undefined.
-const RESEND_FROM_DEFAULT = 'Zahrah Fashion <onboarding@resend.dev>';
+const RESEND_FROM_DEFAULT = 'Zahrah Fashion Hub <onboarding@resend.dev>';
 
 /** Pending email-OTP registration, held in memory until the code is verified. */
 interface PendingRegistration {
@@ -47,6 +47,7 @@ export function trackingToken(orderId: string): string {
 const regKey = (t: string) => `cust-register:${t}`;
 const resetKey = (t: string) => `cust-reset:${t}`;
 const changeKey = (t: string) => `cust-pwchange:${t}`;
+const emailChangeKey = (t: string) => `cust-emailchange:${t}`;
 
 @Injectable()
 export class CustomerAuthService {
@@ -195,12 +196,14 @@ export class CustomerAuthService {
         if (res.ok) return true;
         const detail = await res.text().catch(() => '');
         console.error(`[email] Resend rejected (${res.status}): ${detail}`);
-        throw new BadRequestException('Could not send the email — please check the sender/domain and try again');
+        // A mail failure must NEVER crash an auth flow (password reset, sign-up,
+        // email/password change). Return false so the caller responds neutrally
+        // (and surfaces the dev code locally); the misconfiguration is logged.
+        return false;
       } catch (err) {
-        if (err instanceof BadRequestException) throw err; // real rejection — don't retry
         console.error(`[email] send attempt ${attempt}/${ATTEMPTS} failed:`, (err as Error)?.message ?? err);
         if (attempt < ATTEMPTS) { await new Promise((r) => setTimeout(r, 300 * attempt)); continue; }
-        throw new BadRequestException('Could not reach the email service — please try again');
+        return false;
       }
     }
     return false; // unreachable
@@ -218,9 +221,9 @@ export class CustomerAuthService {
   private sendOtpEmail(email: string, code: string): Promise<boolean> {
     return this.sendEmail(
       email,
-      'Your Zahrah Fashion verification code',
-      this.otpEmailHtml('Verify your email', 'Use this code to finish creating your Zahrah Fashion account:', code),
-      `Your Zahrah Fashion verification code is ${code}. It expires in 10 minutes.`,
+      'Your Zahrah Fashion Hub verification code',
+      this.otpEmailHtml('Verify your email', 'Use this code to finish creating your Zahrah Fashion Hub account:', code),
+      `Your Zahrah Fashion Hub verification code is ${code}. It expires in 10 minutes.`,
     );
   }
 
@@ -310,21 +313,20 @@ export class CustomerAuthService {
 
   // ── Password reset (recovery) ──────────────────────────────────────────────
 
-  /** Step 1: email a reset code. Never reveals whether an account exists. */
-  async startPasswordReset(identifier: string) {
+  /** Step 1: email a reset code. Email-only (no phone). Never reveals whether an
+   *  account exists. */
+  async startPasswordReset(email: string) {
     const fakeToken = randomBytes(24).toString('hex');
-    const phone = tryNormalizePhone(identifier);
-    const customer = phone
-      ? await this.prisma.customer.findUnique({ where: { primaryPhone: phone } })
-      : await this.prisma.customer.findUnique({ where: { email: identifier.toLowerCase().trim() } });
-    // Diagnostic only — never logs the OTP code, only which branch we take.
+    const normalized = email.toLowerCase().trim();
+    const customer = await this.prisma.customer.findUnique({ where: { email: normalized } });
+    // Diagnostic only — no PII, no OTP code, just which branch we took.
     if (!customer || !customer.email) {
-      console.warn(`[reset] no customer with an email for "${identifier}" (looked up by ${phone ? 'phone' : 'email'}) — nothing sent`);
+      console.warn('[reset] no account for the given email — nothing sent');
       return { pendingToken: fakeToken };
     }
     const cred = await this.prisma.customerCredential.findUnique({ where: { customerId: customer.id } });
     if (!cred) {
-      console.warn(`[reset] customer ${customer.id} (${customer.email}) has no password credential — nothing sent`);
+      console.warn(`[reset] customer ${customer.id} has no password credential — nothing sent`);
       return { pendingToken: fakeToken };
     }
 
@@ -334,11 +336,11 @@ export class CustomerAuthService {
     await this.store.set(resetKey(pendingToken), { customerId: customer.id, code, expiresAt: now + OTP_TTL_MS, attempts: 0 }, OTP_TTL_MS / 1000);
     const sent = await this.sendEmail(
       customer.email,
-      'Reset your Zahra Fashion password',
+      'Reset your Zahrah Fashion Hub password',
       this.otpEmailHtml('Reset your password', 'Use this code to set a new password for your account:', code),
-      `Your Zahra Fashion password reset code is ${code}. It expires in 10 minutes.`,
+      `Your Zahrah Fashion Hub password reset code is ${code}. It expires in 10 minutes.`,
     );
-    console.log(`[reset] reset code emailed to ${customer.email} (accepted-by-resend=${sent})`);
+    console.log(`[reset] reset code emailed to customer ${customer.id} (accepted-by-resend=${sent})`);
     const devCode = !sent && process.env.NODE_ENV !== 'production' ? code : undefined;
     return { pendingToken, ...(devCode ? { devCode } : {}) };
   }
@@ -405,9 +407,9 @@ export class CustomerAuthService {
     }, OTP_TTL_MS / 1000);
     const sent = await this.sendEmail(
       customer.email,
-      'Confirm your Zahrah Fashion password change',
+      'Confirm your Zahrah Fashion Hub password change',
       this.otpEmailHtml('Confirm password change', 'Use this code to confirm the new password on your account:', code),
-      `Your Zahrah Fashion password-change code is ${code}. It expires in 10 minutes. If you didn't request this, your password has not changed.`,
+      `Your Zahrah Fashion Hub password-change code is ${code}. It expires in 10 minutes. If you didn't request this, your password has not changed.`,
     );
     const devCode = !sent && process.env.NODE_ENV !== 'production' ? code : undefined;
     return { pendingToken, ...(devCode ? { devCode } : {}) };
@@ -436,6 +438,70 @@ export class CustomerAuthService {
       data: { passwordHash: p.newPasswordHash, failedAttempts: 0, lockedUntil: null },
     });
     return { ok: true };
+  }
+
+  // ── Email change (signed-in, verify the NEW address by OTP) ────────────────
+
+  /** Step 1: validate the new email is free, email a 6-digit code to it, and
+   *  hold the change until the code is confirmed. The address only changes in
+   *  step 2, so an un-owned inbox can never take over the account. */
+  async startEmailChange(customerId: string, newEmailRaw: string) {
+    const newEmail = newEmailRaw.toLowerCase().trim();
+    const current = await this.prisma.customer.findUnique({ where: { id: customerId } });
+    if (!current) throw new BadRequestException('Account not found');
+    if (current.email && current.email.toLowerCase() === newEmail) {
+      throw new BadRequestException('That is already your email address');
+    }
+    const taken = await this.prisma.customer.findUnique({ where: { email: newEmail } });
+    if (taken && taken.id !== customerId) throw new BadRequestException('That email is already in use on another account');
+
+    const code = String(Math.floor(100_000 + Math.random() * 900_000));
+    const pendingToken = randomBytes(24).toString('hex');
+    await this.store.set(emailChangeKey(pendingToken), {
+      customerId,
+      newEmail,
+      code,
+      expiresAt: Date.now() + OTP_TTL_MS,
+      attempts: 0,
+    }, OTP_TTL_MS / 1000);
+    const sent = await this.sendEmail(
+      newEmail,
+      'Confirm your new Zahrah Fashion Hub email',
+      this.otpEmailHtml('Confirm your email change', 'Use this code to confirm this address on your Zahrah Fashion Hub account:', code),
+      `Your Zahrah Fashion Hub email-change code is ${code}. It expires in 10 minutes.`,
+    );
+    const devCode = !sent && process.env.NODE_ENV !== 'production' ? code : undefined;
+    return { pendingToken, ...(devCode ? { devCode } : {}) };
+  }
+
+  /** Step 2: verify the code, then move the email onto the customer (and their
+   *  password credential, which logs in by email). */
+  async verifyEmailChange(customerId: string, pendingToken: string, code: string) {
+    const key = emailChangeKey(pendingToken);
+    const p = await this.store.get<{ customerId: string; newEmail: string; code: string; expiresAt: number; attempts: number }>(key);
+    if (!p || p.customerId !== customerId || p.expiresAt < Date.now()) {
+      await this.store.del(key);
+      throw new BadRequestException('Code expired — please start again');
+    }
+    if (p.attempts >= 5) {
+      await this.store.del(key);
+      throw new BadRequestException('Too many attempts — please start again');
+    }
+    if (code !== p.code) {
+      const remaining = Math.max(1, (p.expiresAt - Date.now()) / 1000);
+      await this.store.set(key, { ...p, attempts: p.attempts + 1 }, remaining);
+      throw new BadRequestException('Incorrect code');
+    }
+    // Re-check uniqueness at commit time (someone could have claimed it meanwhile).
+    const taken = await this.prisma.customer.findUnique({ where: { email: p.newEmail } });
+    if (taken && taken.id !== customerId) {
+      await this.store.del(key);
+      throw new BadRequestException('That email is already in use on another account');
+    }
+    await this.store.del(key);
+    await this.prisma.customer.update({ where: { id: customerId }, data: { email: p.newEmail } });
+    await this.prisma.customerCredential.updateMany({ where: { customerId }, data: { emailOrPhone: p.newEmail, verifiedAt: new Date() } });
+    return { ok: true, email: p.newEmail };
   }
 
   // ── Google sign-in ─────────────────────────────────────────────────────────

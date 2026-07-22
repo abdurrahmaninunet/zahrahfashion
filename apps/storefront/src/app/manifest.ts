@@ -3,8 +3,8 @@ import type { MetadataRoute } from 'next';
 /** Web app manifest (replaces the previously-missing /manifest.json). */
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: 'Zahra Fashion',
-    short_name: 'Zahra',
+    name: 'Zahrah Fashion Hub',
+    short_name: 'Zahrah',
     description: 'Premium lace, ankara, perfumes and gift packages — delivered across Abuja and Nigeria.',
     start_url: '/',
     display: 'standalone',

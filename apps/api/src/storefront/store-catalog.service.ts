@@ -183,6 +183,45 @@ export class StoreCatalogService {
     return Array.from(colours).slice(0, 5);
   }
 
+  /** "Customers who saved this also liked" — products that co-occur with this
+   *  one in customers' wishlists, ranked by how often they're saved together. */
+  async alsoLiked(productId: string, limit = 12) {
+    const rows = await this.prisma.$queryRaw<{ pid: string }[]>`
+      SELECT pid FROM (
+        SELECT unnest(wishlist) AS pid FROM customers WHERE ${productId} = ANY(wishlist)
+      ) t
+      WHERE pid <> ${productId}
+      GROUP BY pid
+      ORDER BY COUNT(*) DESC
+      LIMIT ${limit}`;
+    const ids = rows.map((r) => r.pid);
+    if (!ids.length) return { products: [] as Awaited<ReturnType<typeof this.listing>>['products'] };
+    const { products } = await this.listing({ filters: {}, ids });
+    // Preserve the co-save ranking (listing doesn't guarantee input order).
+    const rank = new Map(ids.map((id, i) => [id, i]));
+    products.sort((a, b) => (rank.get(a.id) ?? 999) - (rank.get(b.id) ?? 999));
+    return { products };
+  }
+
+  /** Curated storefront collections (admin ticks flags.mens / luxuryLace /
+   *  perfumes on a product). Returned shuffled so the page feels fresh. */
+  static readonly CURATED: Record<string, { flag: string; title: string }> = {
+    mens: { flag: 'mens', title: "Men's Collection" },
+    'luxury-lace': { flag: 'luxuryLace', title: 'Luxury Lace' },
+    perfumes: { flag: 'perfumes', title: 'Perfumes' },
+  };
+
+  async curated(key: string) {
+    const cfg = StoreCatalogService.CURATED[key];
+    if (!cfg) return { title: '', products: [] as Awaited<ReturnType<typeof this.listing>>['products'] };
+    const { products } = await this.listing({ filters: {}, flag: cfg.flag });
+    for (let i = products.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [products[i], products[j]] = [products[j], products[i]];
+    }
+    return { title: cfg.title, products };
+  }
+
   // ── PLP (FR-SF-CAT-01) ─────────────────────────────────────────────────────
 
   async listing(params: {
@@ -194,7 +233,9 @@ export class StoreCatalogService {
     page?: number;
     q?: string; // when reused by search results
     ids?: string[];
+    collectionId?: string; // filter to products assigned to this collection
     store?: string; // 'mim' → only MIM products; otherwise exclude MIM
+    flag?: string; // curated storefront collection flag (flags.mens / luxuryLace / perfumes)
   }) {
     const page = Math.max(1, params.page ?? 1);
     const pageSize = 24;
@@ -233,6 +274,8 @@ export class StoreCatalogService {
             : {}),
       ...(categoryIds ? { categoryId: { in: categoryIds } } : {}),
       ...(params.ids ? { id: { in: params.ids } } : {}),
+      ...(params.flag ? { flags: { path: [params.flag], equals: true } } : {}),
+      ...(params.collectionId ? { attributeValues: { path: ['_collectionId'], equals: params.collectionId } } : {}),
       // Attribute filters: match product attributeValues OR variant optionValues.
       ...(attrFilters.length
         ? {
@@ -273,10 +316,15 @@ export class StoreCatalogService {
     ]);
 
     let cards = await this.cards(products);
-    // Sold-out de-prioritized in default sort (S-BR-02).
-    if (!params.sort || params.sort === 'newest') cards = [...cards.filter((c) => !c.soldOut), ...cards.filter((c) => c.soldOut)];
-    if (params.sort === 'price_asc') cards.sort((a, b) => a.price - b.price);
-    if (params.sort === 'price_desc') cards.sort((a, b) => b.price - a.price);
+    // Sold-out de-prioritized (S-BR-02). Default (no explicit sort) is shuffled so
+    // storefront grids feel fresh; explicit sorts and search relevance are kept.
+    const soldLast = (list: typeof cards) => [...list.filter((c) => !c.soldOut), ...list.filter((c) => c.soldOut)];
+    if (!params.sort && !params.q) {
+      cards = [...shuffleCards(cards.filter((c) => !c.soldOut)), ...shuffleCards(cards.filter((c) => c.soldOut))];
+    } else if (!params.sort || params.sort === 'newest') {
+      cards = soldLast(cards);
+    } else if (params.sort === 'price_asc') cards.sort((a, b) => a.price - b.price);
+    else if (params.sort === 'price_desc') cards.sort((a, b) => b.price - a.price);
 
     return {
       category: category ? { id: category.id, name: category.name, slug: category.slug, image: category.image } : null,
@@ -359,7 +407,15 @@ export class StoreCatalogService {
           .filter((d) => d && typeof d.name === 'string' && d.name.trim() !== '' && d.value != null && d.value !== '')
           .map((d) => ({ name: String(d.name), value: d.value }))
       : [];
-    const details = [...attrDetails, ...customDetails];
+    // Colour + occasions (free-text reserved keys) surface as product details too.
+    const colour = typeof attributeValues._colour === 'string' ? attributeValues._colour.trim() : '';
+    const occasions = typeof attributeValues._occasions === 'string' ? attributeValues._occasions.trim() : '';
+    const details = [
+      ...(colour ? [{ name: 'Colour', value: colour }] : []),
+      ...attrDetails,
+      ...customDetails,
+      ...(occasions ? [{ name: 'Occasions', value: occasions }] : []),
+    ];
     const rating = await this.reviews.summary(p.id);
 
     if (p.type !== 'standard') {
@@ -554,4 +610,13 @@ export class StoreCatalogService {
       fractional: !!f.fractional,
     };
   }
+}
+
+/** Fisher–Yates shuffle (in place) — used to randomise default storefront grids. */
+function shuffleCards<T>(list: T[]): T[] {
+  for (let i = list.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [list[i], list[j]] = [list[j], list[i]];
+  }
+  return list;
 }

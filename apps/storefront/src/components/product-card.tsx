@@ -6,6 +6,7 @@ export interface ProductCardData {
   slug: string;
   name: string;
   type: string;
+  category?: { name: string; slug: string } | null;
   image: string | null;
   imageAlt: string;
   secondImage: string | null;

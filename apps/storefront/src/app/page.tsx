@@ -4,7 +4,6 @@ import { ProductCardData, ProductRail } from '@/components/product-card';
 import { HeroSlider } from '@/components/hero-slider';
 import { TodaysDeals } from '@/components/todays-deals';
 import { OwambeEdit } from '@/components/owambe-edit';
-import { MimReady } from '@/components/mim-ready';
 import { MoreToLove } from '@/components/more-to-love';
 import { StoreContext } from '@/components/shell';
 
@@ -35,6 +34,19 @@ export default async function HomePage() {
     ]);
   } catch { /* stale-while-error */ }
 
+  // Featured MIM products (up to 3, picked in admin) — shown in the "Shop by
+  // Category" MIM panel. Fetched separately so a miss never breaks the page.
+  let mimFeatured: { image: string; name: string }[] = [];
+  try {
+    const mr = await serverApi<{ enabled: boolean; products: { image: string | null; name: string }[] }>('/store/mim/ready', 30);
+    if (mr.enabled) {
+      mimFeatured = mr.products
+        .filter((p): p is { image: string; name: string } => !!p.image)
+        .slice(0, 3)
+        .map((p) => ({ image: p.image, name: p.name }));
+    }
+  } catch { /* ignore */ }
+
   // Homepage is curated in code (deals → categories → discovery feed). Pull out
   // Today's Deals so it always renders above Shop by Category, and hide the CMS
   // rails/tiles/strips so they don't render alongside the handcrafted sections.
@@ -57,15 +69,17 @@ export default async function HomePage() {
   return (
     <div>
       {!hasHero && <DefaultHero categories={context?.categories ?? []} />}
+      {!hasHero && <><TrustBar /><StatBand count={context?.homepage?.fabricsCount} /><PartnerCTA /></>}
       {sections.map((section, i) => (
         <div key={section.id}>
           <SectionRenderer section={section} first={i === 0} context={context} />
           {i === 0 && (
             <>
+              {hasHero && <><TrustBar /><StatBand count={context?.homepage?.fabricsCount} /><PartnerCTA /></>}
               {todaysDeals}
-              <OwambeEdit categories={context?.categories ?? []} mimEnabled={context?.mimEnabled ?? true} />
-              <MimReady />
+              <OwambeEdit categories={context?.categories ?? []} mimEnabled={context?.mimEnabled ?? true} mimProducts={mimFeatured} />
               <MoreToLove />
+              <WhyUs />
             </>
           )}
         </div>
@@ -73,11 +87,86 @@ export default async function HomePage() {
       {!sections.length && (
         <>
           {todaysDeals}
-          <OwambeEdit categories={context?.categories ?? []} />
-          <MimReady />
+          <OwambeEdit categories={context?.categories ?? []} mimProducts={mimFeatured} />
           <MoreToLove />
+          <WhyUs />
         </>
       )}
+    </div>
+  );
+}
+
+/** Brand positioning section — why shop with us. */
+function WhyUs() {
+  return (
+    <section className="mx-auto max-w-[1905px] px-2.5 py-14 text-center lg:px-[8rem]">
+      <h2 className="font-display text-2xl font-bold text-stone-900 md:text-4xl">Why ZAHRA FASHION HUB LIMITED?</h2>
+      <p className="mx-auto mt-4 max-w-3xl text-sm leading-relaxed text-stone-600 md:text-lg">
+        Every collection is carefully selected to combine quality, elegance and timeless beauty. Whether you are
+        preparing for a wedding, celebration, Eid, corporate event or everyday sophistication, our mission is to
+        help you define your style with confidence.
+      </p>
+    </section>
+  );
+}
+
+/** Social-proof statistic — reinforces scale. The number is editable in
+ *  admin Settings → Storefront (homepage.fabrics_count). */
+function StatBand({ count }: { count?: number }) {
+  const n = (count && count > 0 ? count : 1000).toLocaleString('en-NG');
+  return (
+    <section className="mx-auto max-w-[1905px] px-2.5 py-12 text-center lg:px-[8rem]">
+      <p className="font-display text-3xl font-bold text-stone-900 md:text-4xl">
+        Over <span className="text-[#c9a227]">{n}</span> premium fabrics
+      </p>
+      <p className="mx-auto mt-2 max-w-md text-stone-500 md:text-lg">carefully curated for every occasion.</p>
+    </section>
+  );
+}
+
+/** Reseller / affiliate recruitment banner — sits below the trust strip. */
+function PartnerCTA() {
+  return (
+    <section className="mx-auto max-w-[1905px] px-2.5 pb-10 lg:px-[8rem]">
+      <div className="rounded-lg bg-stone-900 px-6 py-12 text-center md:px-12 md:py-16">
+        <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[#c9a227]">Reseller network</p>
+        <h2 className="mx-auto mt-3 max-w-3xl font-display text-2xl font-bold text-white md:text-4xl">
+          Become a Zahrah Fashion Hub Partner
+        </h2>
+        <p className="mx-auto mt-4 max-w-2xl text-sm leading-relaxed text-stone-300 md:text-base">
+          Join our growing reseller network and build your business with premium fabrics trusted by customers
+          across Abuja. Enjoy competitive pricing, dedicated support and access to carefully curated collections.
+        </p>
+        <Link
+          href="/partner"
+          className="mt-7 inline-block rounded-md bg-[#c9a227] px-9 py-3 text-sm font-semibold text-stone-900 transition-colors hover:bg-[#d8b53a]"
+        >
+          Become a Partner
+        </Link>
+      </div>
+    </section>
+  );
+}
+
+/** Trust indicators strip — sits directly below the hero to establish credibility. */
+function TrustBar() {
+  const items = [
+    'Premium Quality Fabrics',
+    'Carefully Curated Collections',
+    'Trusted by Families Across Abuja',
+    'Nationwide Delivery',
+    'Personal Shopping Experience',
+    'Growing Reseller Network',
+  ];
+  return (
+    <div className="bg-white shadow-[0_2px_6px_rgba(0,0,0,0.05)]">
+      <div className="mx-auto flex max-w-[1905px] flex-wrap items-center justify-center gap-x-7 gap-y-2 px-2.5 py-3.5 lg:px-[8rem]">
+        {items.map((t) => (
+          <span key={t} className="flex items-center gap-1.5 whitespace-nowrap text-[13px] font-medium text-stone-700">
+            <span className="font-bold text-emerald-600">✓</span> {t}
+          </span>
+        ))}
+      </div>
     </div>
   );
 }
@@ -85,7 +174,7 @@ export default async function HomePage() {
 function SectionRenderer({ section, first, context }: { section: Section; first: boolean; context: StoreContext | null }) {
   switch (section.sectionKey) {
     case 'hero_slider':
-      return <HeroSlider slides={(section.fields.slides as never[]) ?? []} priority={first} />;
+      return <HeroSlider slides={(section.fields.slides as never[]) ?? []} priority={first} whatsapp={context?.store.whatsapp} />;
     case 'todays_deals':
       return (
         <TodaysDeals

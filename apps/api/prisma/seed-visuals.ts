@@ -281,8 +281,8 @@ async function main() {
     if (!existing) await prisma.settingValue.create({ data: { key, value: value as never, updatedBy: 'seed' } });
   };
   await upsert('store.address', 'Plot 5, Ademola Adetokunbo Crescent, Wuse 2, Abuja');
-  await upsert('store.phone', '+234 7060802195');
-  await upsert('notifications.whatsapp_chat', { number: '+2347060802195', message: "Hi ZahrahFashion! I'm browsing your store" });
+  await upsert('store.phone', '+234 7060805195');
+  await upsert('notifications.whatsapp_chat', { number: '+2347060805195', message: "Hi ZahrahFashion! I'm browsing your store" });
   await upsert('store.social', { instagram: 'zahrah.fashion.nlg', facebook: 'https://www.facebook.com/share/19CE5n2aR2/', tiktok: 'zahrah.fashion.nlg' });
 
   console.log('Visual seed complete');

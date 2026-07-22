@@ -16,6 +16,7 @@ import { WishlistSync } from '@/components/wishlist-sync';
 export interface StoreContext {
   store: { name: string; phone: string; whatsapp: string; whatsappMessage: string; email: string; address: string; social: { instagram?: string; facebook?: string; tiktok?: string } };
   mimEnabled: boolean;
+  homepage?: { fabricsCount: number };
   podAvailable: boolean;
   announcement: { message: string; link: string | null } | null;
   categories: { id: string; name: string; slug: string; parentId: string | null; image?: string | null }[];
@@ -35,7 +36,7 @@ export function AnnouncementBar({ announcement }: { announcement: StoreContext['
 // ── Header: two-row marketplace layout — logo · pill search · utilities, then
 //    an "All Categories" bar with inline category links + "More" dropdown.
 
-const NAV_LABELS = ['Fabric', 'Laces', 'Perfumes', 'Caps', 'Cosmetics', 'Lefe', 'Anko', 'MIM Store', 'Gift Card', 'Balance'];
+const NAV_LABELS = ['Collections', 'New Arrivals', 'Luxury Lace', 'Mens Collections', 'Perfumes', 'Lefe', 'MIM Store', 'Become a Zahrah Fashion Hub Partner', 'Visit our Stores', 'About Us', 'Contact Us'];
 
 export function Header({ context }: { context: StoreContext }) {
   const { count } = useCart();
@@ -91,11 +92,19 @@ export function Header({ context }: { context: StoreContext }) {
     { label: 'Home', href: '/' },
     ...visibleNavLabels.map((label) => {
       const key = label.toLowerCase();
+      if (key === 'collections') return { label, href: '/collections' };
+      if (key === 'new arrivals') return { label, href: '/new-arrivals' };
       if (key === 'mim store') return { label, href: '/mim' };
       if (key === 'lefe') return { label, href: '/lefe' };
-      if (key === 'anko') return { label, href: '/anko' };
-      if (key === 'gift card') return { label, href: '/gift-card' };
-      if (key === 'balance') return { label, href: '/balance' };
+      if (key.includes('partner')) return { label, href: '/partner' };
+      if (key === 'visit our stores') return { label, href: '/shops' };
+      if (key === 'about us') return { label, href: '/pages/about-us' };
+      if (key === 'contact us' || key === 'contact') return { label, href: '/pages/contact' };
+      // Curated storefront collections (admin ticks flags on products).
+      if (key === 'mens collections') return { label, href: '/collection/mens' };
+      if (key === 'luxury lace') return { label, href: '/collection/luxury-lace' };
+      if (key === 'perfumes') return { label, href: '/collection/perfumes' };
+      // Category-like labels resolve to a real category when one exists, else search.
       const match = context.categories.find((c) => c.name.toLowerCase() === key);
       return { label, href: match ? `/c/${match.slug}` : `/search?q=${encodeURIComponent(label)}` };
     }),
@@ -110,14 +119,19 @@ export function Header({ context }: { context: StoreContext }) {
     <>
       <header className="sticky top-0 z-40 bg-white">
         {/* Row 1 — logo · search pill · utilities */}
-        <div className="mx-auto flex max-w-[1905px] flex-wrap items-center gap-x-4 gap-y-2 px-4 lg:px-[8rem] py-3">
+        <div className="mx-auto flex max-w-[1905px] flex-wrap items-center gap-x-4 gap-y-2 px-4 lg:px-6 xl:px-12 2xl:px-[8rem] py-3">
           {/* Left zone — equal flex to keep the search centered */}
           <div className="flex flex-1 items-center gap-2">
             <button aria-label="Menu" className="-ml-2 p-2 md:hidden cursor-pointer" onClick={() => setMenuOpen(true)}>
               <Menu size={20} />
             </button>
-            <Link href="/" className="font-display whitespace-nowrap text-[17px] font-bold uppercase tracking-[0.08em] sm:text-[24px] sm:tracking-[0.16em]">
-              {context.store.name || 'Zahra'}
+            <Link href="/" className="flex items-center gap-2">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src="/logo.svg" alt="Zahrah Fashion Hub" className="h-8 w-8 shrink-0 sm:h-9 sm:w-9" />
+              {/* Wordmark hides on phones (logo only); the mobile drawer keeps its own logo + name. */}
+              <span className="hidden font-display whitespace-nowrap text-[17px] font-bold uppercase tracking-[0.08em] md:inline sm:text-[24px] sm:tracking-[0.16em]">
+                {context.store.name || 'Zahrah Fashion Hub'}
+              </span>
             </Link>
           </div>
 
@@ -127,7 +141,7 @@ export function Header({ context }: { context: StoreContext }) {
               <input
                 value={q}
                 onChange={(e) => setQ(e.target.value)}
-                placeholder="Search lace, ankara, perfumes…"
+                placeholder="Search by collection, colour, occasion or product"
                 className="h-10 w-full bg-transparent text-sm outline-none placeholder:text-stone-400"
               />
               <button aria-label="Search" className="flex h-8 w-12 shrink-0 items-center justify-center rounded-full bg-stone-900 text-white transition-colors hover:bg-stone-700 cursor-pointer">
@@ -179,7 +193,7 @@ export function Header({ context }: { context: StoreContext }) {
                         { icon: Gift, label: 'Gift Card', href: '/gift-card', auth: false },
                         { icon: Ticket, label: 'Coupons', href: '/coming-soon/coupons', auth: false },
                         { icon: Heart, label: 'Wishlist', href: '/wishlist', auth: false },
-                        { icon: Wallet, label: 'Balance', href: '/balance', auth: false },
+                        { icon: Wallet, label: 'Store Credit', href: '/balance', auth: false },
                       ].map(({ icon: Icon, label, href, auth }) => {
                         const cls = 'flex w-full items-center gap-3 rounded-lg px-2 py-2 text-left text-sm text-stone-800 transition-colors hover:bg-stone-50';
                         const inner = <><Icon size={18} strokeWidth={1.7} className="text-stone-500" />{label}</>;
@@ -196,7 +210,7 @@ export function Header({ context }: { context: StoreContext }) {
                     <hr className="my-3 border-stone-100" />
 
                     <div className="space-y-0.5">
-                      {['Settings', 'Disputes'].map((label) => (
+                      {['Account Settings', 'Disputes'].map((label) => (
                         firstName ? (
                           <Link key={label} href="/account" onClick={() => setAcctOpen(false)} className="block rounded-lg px-2 py-1.5 text-sm text-stone-500 transition-colors hover:bg-stone-50 hover:text-stone-900">{label}</Link>
                         ) : (
@@ -257,7 +271,7 @@ export function Header({ context }: { context: StoreContext }) {
 
         {/* Row 2 — All Categories + inline category nav */}
         <div className="hidden md:block">
-          <div className="mx-auto flex max-w-[1905px] items-center gap-1 px-4 lg:px-[8rem]">
+          <div className="mx-auto flex max-w-[1905px] items-center gap-1 px-4 lg:px-6 xl:px-12 2xl:px-[8rem]">
             <div ref={catsRef} className="relative py-2">
               <button
                 onClick={() => setCatsOpen((v) => !v)}
@@ -326,7 +340,7 @@ export function Header({ context }: { context: StoreContext }) {
                 </div>
               )}
             </div>
-            <nav className="flex flex-1 items-center justify-around overflow-x-auto">
+            <nav className="scrollbar-none flex flex-1 items-center justify-between overflow-x-auto lg:justify-around">
               {inlineNav.map((item) => {
                 const itemPath = item.href.split('?')[0];
                 const active = itemPath === '/' ? pathname === '/' : pathname === itemPath || pathname.startsWith(`${itemPath}/`);
@@ -335,9 +349,9 @@ export function Header({ context }: { context: StoreContext }) {
                     key={item.label}
                     href={item.href}
                     aria-current={active ? 'page' : undefined}
-                    className={`relative whitespace-nowrap px-4 py-3.5 text-[16px] font-bold transition-colors ${
+                    className={`relative whitespace-nowrap px-1.5 py-3 text-[11px] font-bold transition-colors lg:px-1.5 xl:px-2 xl:text-[12px] min-[1440px]:px-2.5 min-[1440px]:text-[13px] min-[1600px]:px-3 min-[1600px]:text-[14px] min-[1800px]:px-4 min-[1800px]:text-[15px] ${
                       active
-                        ? 'text-[#8a6d1f] after:absolute after:inset-x-4 after:bottom-0 after:h-0.5 after:rounded-full after:bg-[#8a6d1f]'
+                        ? 'text-[#8a6d1f] after:absolute after:inset-x-1.5 after:bottom-0 after:h-0.5 after:rounded-full after:bg-[#8a6d1f] min-[1440px]:after:inset-x-2.5'
                         : 'text-stone-700 hover:text-stone-950'
                     }`}
                   >
@@ -360,7 +374,11 @@ export function Header({ context }: { context: StoreContext }) {
           <div className="absolute inset-0 bg-black/40" onClick={() => setMenuOpen(false)} />
           <div className="absolute inset-y-0 left-0 w-72 overflow-y-auto bg-white p-5">
             <div className="mb-4 flex items-center justify-between">
-              <span className="font-display text-lg font-bold">{context.store.name || 'Zahra'}</span>
+              <span className="flex items-center gap-2 font-display text-lg font-bold">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src="/logo.svg" alt="" aria-hidden="true" className="h-7 w-7" />
+                {context.store.name || 'Zahrah Fashion Hub'}
+              </span>
               <button aria-label="Close menu" className="cursor-pointer" onClick={() => setMenuOpen(false)}><X size={20} /></button>
             </div>
             <nav className="space-y-1">
@@ -426,6 +444,50 @@ const socialIcon = {
   ),
 };
 
+/** Footer newsletter sign-up — POSTs to the store; the email lands in the
+ *  admin Newsletter tab. */
+function NewsletterForm() {
+  const [email, setEmail] = useState('');
+  const [done, setDone] = useState(false);
+  const [busy, setBusy] = useState(false);
+
+  async function submit(e: React.FormEvent) {
+    e.preventDefault();
+    if (!email.trim() || busy) return;
+    setBusy(true);
+    try {
+      await api.post('/store/newsletter', { email: email.trim(), source: 'footer' });
+      setDone(true);
+      setEmail('');
+    } catch {
+      /* best-effort — still thank the user */
+      setDone(true);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  if (done) {
+    return <p className="mt-4 rounded-md bg-stone-900 px-4 py-3 text-sm text-emerald-400">Thank you — you&apos;re on the list! 🎉</p>;
+  }
+
+  return (
+    <form className="mt-4 flex max-w-sm gap-2" onSubmit={submit}>
+      <input
+        type="email"
+        required
+        value={email}
+        onChange={(e) => setEmail(e.target.value)}
+        placeholder="Your email address"
+        className="h-11 w-full rounded-md border border-stone-700 bg-stone-900 px-3 text-sm text-white placeholder:text-stone-500 outline-none focus:border-stone-400"
+      />
+      <button disabled={busy} className="h-11 shrink-0 rounded-md bg-white px-5 text-sm font-semibold text-stone-950 transition-colors hover:bg-stone-200 disabled:opacity-60 cursor-pointer">
+        {busy ? '…' : 'Subscribe'}
+      </button>
+    </form>
+  );
+}
+
 export function Footer({ context }: { context: StoreContext }) {
   const social = context.store.social ?? {};
   const email = context.store.email || 'hello@zahrahfashion.com';
@@ -443,12 +505,12 @@ export function Footer({ context }: { context: StoreContext }) {
   if (wa) socials.push({ name: 'WhatsApp', href: wa, icon: socialIcon.whatsapp });
   return (
     <footer className="mt-16 bg-stone-950 text-stone-300">
-      <div className="mx-auto max-w-[1905px] px-4 lg:px-[8rem] pt-12">
+      <div className="mx-auto max-w-[1905px] px-4 pt-12 lg:px-[8rem]">
         <p className="font-display text-3xl font-bold uppercase tracking-[0.22em] text-white md:text-5xl">
-          {context.store.name || 'Zahra'}
+          {context.store.name || 'Zahrah Fashion Hub'}
         </p>
-        <p className="mt-2 max-w-md text-sm text-stone-400">
-          Fabrics that drape, scents that linger — delivered across Nigeria.
+        <p className="mt-3 max-w-md text-sm text-stone-300">
+          Style Defined. Premium Fabrics for Life&apos;s Finest Moments.
         </p>
       </div>
       <div className="mx-auto grid max-w-[1905px] gap-8 px-4 lg:px-[8rem] py-10 sm:grid-cols-2 lg:grid-cols-4">
@@ -468,6 +530,9 @@ export function Footer({ context }: { context: StoreContext }) {
         </div>
         <div>
           <p className="mb-3 text-xs font-bold uppercase tracking-wider text-stone-400">Contact us</p>
+          <p className="mb-2 text-sm leading-relaxed text-stone-400">
+            Need assistance? Our customer care team is always ready to help you choose the perfect collection.
+          </p>
           {context.store.phone && (
             <a href={`tel:${context.store.phone.replace(/\s+/g, '')}`} className="block py-1 text-sm text-stone-400 transition-colors hover:text-white">{context.store.phone}</a>
           )}
@@ -504,8 +569,20 @@ export function Footer({ context }: { context: StoreContext }) {
           )}
         </div>
       </div>
-      <p className="border-t border-stone-800 py-4 text-center text-xs text-stone-500">
-        © {new Date().getFullYear()} {context.store.name || 'Zahra Fashion'} — Style redefined
+      <div className="mx-auto max-w-[1905px] px-4 pb-10 lg:px-[8rem]">
+        <div className="max-w-md">
+          <p className="font-display text-xl font-bold text-white">Stay Inspired</p>
+          <p className="mt-2 text-sm text-stone-400">
+            Be the first to discover new arrivals, exclusive collections and special offers from ZAHRA FASHION HUB LIMITED.
+          </p>
+          <NewsletterForm />
+        </div>
+      </div>
+      <p className="border-t border-stone-800 pt-6 text-center font-display text-base italic text-stone-300">
+        Building elegance, one collection at a time.
+      </p>
+      <p className="py-4 text-center text-xs text-stone-500">
+        © {new Date().getFullYear()} {context.store.name || 'Zahrah Fashion Hub'} — Style redefined
       </p>
     </footer>
   );
@@ -538,15 +615,22 @@ export function WhatsAppFloat({ context, message }: { context: StoreContext; mes
     window.open(whatsappLink(context.store.whatsapp, text), '_blank');
   }
 
+  const label = 'Need help choosing the perfect fabric? Chat with us on WhatsApp.';
   return (
-    <button
-      aria-label="Chat with us on WhatsApp"
-      onClick={open}
-      className={`fixed bottom-5 right-5 z-40 flex h-14 w-14 items-center justify-center rounded-full bg-[#25d366] text-white shadow-lg hover:scale-105 transition-transform cursor-pointer ${pulsed ? '' : 'wa-pulse'}`}
-    >
-      <svg viewBox="0 0 24 24" width="26" height="26" fill="currentColor" aria-hidden>
+    <div className="group fixed bottom-5 right-5 z-40 flex items-center gap-2.5">
+      <span className="pointer-events-none hidden max-w-[220px] translate-x-2 rounded-lg bg-white px-3 py-2 text-right text-xs font-medium leading-snug text-stone-700 opacity-0 shadow-lg transition-all duration-200 group-hover:translate-x-0 group-hover:opacity-100 md:block">
+        {label}
+      </span>
+      <button
+        aria-label={label}
+        title={label}
+        onClick={open}
+        className={`flex h-14 w-14 items-center justify-center rounded-full bg-[#25d366] text-white shadow-lg hover:scale-105 transition-transform cursor-pointer ${pulsed ? '' : 'wa-pulse'}`}
+      >
+        <svg viewBox="0 0 24 24" width="26" height="26" fill="currentColor" aria-hidden>
         <path d="M17.5 14.4c-.3-.15-1.76-.87-2.03-.97-.27-.1-.47-.15-.67.15-.2.3-.77.96-.94 1.16-.17.2-.35.22-.65.07-.3-.15-1.26-.46-2.4-1.48-.88-.79-1.48-1.76-1.65-2.06-.17-.3-.02-.46.13-.61.14-.13.3-.35.45-.52.15-.17.2-.3.3-.5.1-.2.05-.37-.02-.52-.08-.15-.68-1.62-.93-2.22-.24-.58-.49-.5-.67-.51h-.57c-.2 0-.52.07-.8.37-.27.3-1.04 1.02-1.04 2.5 0 1.47 1.07 2.9 1.22 3.1.15.2 2.1 3.2 5.1 4.49.71.3 1.27.49 1.7.63.72.23 1.37.2 1.88.12.58-.09 1.76-.72 2-1.41.25-.7.25-1.29.18-1.41-.08-.13-.28-.2-.58-.35zM12.05 21.6h-.01a9.6 9.6 0 0 1-4.89-1.34l-.35-.2-3.63.95.97-3.54-.23-.36a9.57 9.57 0 0 1-1.47-5.1c0-5.3 4.31-9.6 9.62-9.6a9.55 9.55 0 0 1 6.8 2.82 9.55 9.55 0 0 1 2.81 6.79c0 5.3-4.31 9.6-9.62 9.6zm8.18-17.77A11.5 11.5 0 0 0 12.05.4C5.66.4.46 5.6.46 11.99c0 2.04.53 4.03 1.55 5.79L.36 23.6l5.96-1.56a11.58 11.58 0 0 0 5.72 1.5h.01c6.39 0 11.59-5.2 11.59-11.59 0-3.1-1.2-6-3.41-8.12z" />
-      </svg>
-    </button>
+        </svg>
+      </button>
+    </div>
   );
 }

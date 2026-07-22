@@ -1,7 +1,14 @@
 import { BadRequestException, Injectable, OnModuleInit } from '@nestjs/common';
 import { randomUUID } from 'crypto';
 import * as argon2 from 'argon2';
+import { PDFDocument, StandardFonts, rgb } from 'pdf-lib';
 import { PrismaService } from '../prisma/prisma.service';
+
+const LEDGER_DESC: Record<string, string> = {
+  topup: 'Wallet top-up',
+  gift_claim: 'Gift card claimed',
+  gift_use: 'Gift card added to balance',
+};
 
 const MIN_KOBO = 100_00;          // ₦100 floor
 const MAX_KOBO = 5_000_000_00;    // ₦5,000,000 ceiling (sanity)
@@ -105,12 +112,92 @@ export class WalletService implements OnModuleInit {
   // ── Balance ───────────────────────────────────────────────────────────────
   async getBalance(customerId: string) {
     const b = await this.prisma.$queryRaw<{ balance: bigint }[]>`SELECT balance FROM customer_balances WHERE customer_id = ${customerId}`;
-    const ledger = await this.prisma.$queryRaw<{ amount: bigint; type: string; created_at: Date }[]>`
-      SELECT amount, type, created_at FROM balance_ledger WHERE customer_id = ${customerId} ORDER BY created_at DESC LIMIT 50`;
+    // `seq` is a stable per-customer running number (oldest = 1) used to build the
+    // human transaction reference ZFH-<date>-<seq> on the client.
+    const ledger = await this.prisma.$queryRaw<{ id: string; amount: bigint; type: string; ref: string; created_at: Date; seq: bigint }[]>`
+      SELECT id, amount, type, ref, created_at,
+             ROW_NUMBER() OVER (ORDER BY created_at ASC) AS seq
+      FROM balance_ledger WHERE customer_id = ${customerId}
+      ORDER BY created_at DESC LIMIT 50`;
     return {
       balance: Number(b[0]?.balance ?? 0),
-      ledger: ledger.map((l) => ({ amount: Number(l.amount), type: l.type, createdAt: l.created_at })),
+      ledger: ledger.map((l) => ({
+        id: l.id,
+        amount: Number(l.amount),
+        type: l.type,
+        ref: l.ref,
+        seq: Number(l.seq),
+        createdAt: l.created_at,
+      })),
     };
+  }
+
+  /** Build a one-page PDF receipt for a single ledger entry (server-generated). */
+  async receiptPdf(customerId: string, ledgerId: string): Promise<{ filename: string; bytes: Uint8Array }> {
+    const rows = await this.prisma.$queryRaw<{ id: string; amount: bigint; type: string; ref: string; created_at: Date; seq: bigint }[]>`
+      SELECT id, amount, type, ref, created_at, seq FROM (
+        SELECT id, amount, type, ref, created_at,
+               ROW_NUMBER() OVER (ORDER BY created_at ASC) AS seq
+        FROM balance_ledger WHERE customer_id = ${customerId}
+      ) t WHERE id = ${ledgerId} LIMIT 1`;
+    const l = rows[0];
+    if (!l) throw new BadRequestException('Receipt not found');
+
+    const d = new Date(l.created_at);
+    const ymd = `${d.getFullYear()}${String(d.getMonth() + 1).padStart(2, '0')}${String(d.getDate()).padStart(2, '0')}`;
+    const reference = `ZFH-${ymd}-${String(Number(l.seq)).padStart(6, '0')}`;
+    const amount = Number(l.amount);
+    // StandardFonts use WinAnsi, which can't encode the ₦ glyph — use "NGN".
+    const money = `NGN ${(amount / 100).toLocaleString('en-NG')}`;
+    const dateStr = d.toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' });
+
+    const pdf = await PDFDocument.create();
+    pdf.setTitle(`Receipt ${reference}`);
+    const page = pdf.addPage([420, 560]);
+    const font = await pdf.embedFont(StandardFonts.Helvetica);
+    const bold = await pdf.embedFont(StandardFonts.HelveticaBold);
+    const ink = rgb(0.11, 0.098, 0.09);
+    const grey = rgb(0.47, 0.44, 0.42);
+    const gold = rgb(0.54, 0.43, 0.12);
+    const M = 40;
+    let y = 500;
+
+    page.drawText('ZAHRA FASHION HUB LIMITED', { x: M, y, size: 15, font: bold, color: ink });
+    y -= 16;
+    page.drawText('Store Credit Receipt  ·  Abuja, Nigeria', { x: M, y, size: 9, font, color: grey });
+    y -= 30;
+    page.drawText('Successful', { x: M, y, size: 10, font: bold, color: rgb(0.02, 0.47, 0.34) });
+    y -= 30;
+    page.drawText(`${amount >= 0 ? '+' : ''}${money}`, { x: M, y, size: 26, font: bold, color: ink });
+    y -= 34;
+    page.drawLine({ start: { x: M, y }, end: { x: 380, y }, thickness: 1, color: rgb(0.9, 0.89, 0.88) });
+    y -= 26;
+
+    const rowsOut: [string, string][] = [
+      ['Transaction Reference', reference],
+      ['Date', dateStr],
+      ['Description', LEDGER_DESC[l.type] ?? l.type],
+      ['Payment Method', l.type === 'topup' ? 'Paystack' : 'Gift Card'],
+      ['Status', 'Successful'],
+      ['Provider Reference', l.ref],
+    ];
+    for (const [k, v] of rowsOut) {
+      page.drawText(k, { x: M, y, size: 9, font, color: grey });
+      const val = v.length > 34 ? v.slice(0, 33) + '…' : v;
+      page.drawText(val, { x: 190, y, size: 10, font: bold, color: ink });
+      y -= 22;
+    }
+    y -= 14;
+    page.drawLine({ start: { x: M, y }, end: { x: 380, y }, thickness: 1, color: rgb(0.9, 0.89, 0.88) });
+    y -= 22;
+    page.drawText('Thank you for shopping with Zahrah Fashion Hub.', { x: M, y, size: 9, font, color: gold });
+    y -= 14;
+    page.drawText('This is a computer-generated receipt and needs no signature.', { x: M, y, size: 8, font, color: grey });
+    y -= 12;
+    page.drawText('Questions? hello@zahrahfashion.com  ·  WhatsApp +234 706 080 5195', { x: M, y, size: 8, font, color: grey });
+
+    const bytes = await pdf.save();
+    return { filename: `receipt-${reference}.pdf`, bytes };
   }
 
   async topupBalance(customer: { id: string; email: string | null }, amountKobo: number, origin?: string) {
@@ -215,7 +302,7 @@ export class WalletService implements OnModuleInit {
 
   private async sendGiftEmail(to: string, gift: { amount: number; code: string; password: string; phone?: string; message?: string }) {
     const apiKey = process.env.RESEND_API_KEY;
-    const from = process.env.RESEND_FROM_EMAIL ?? 'Zahrah Fashion <onboarding@resend.dev>';
+    const from = process.env.RESEND_FROM_EMAIL ?? 'Zahrah Fashion Hub <onboarding@resend.dev>';
     const amountStr = `₦${(gift.amount / 100).toLocaleString('en-NG')}`;
     const formatted = (gift.code.match(/.{1,4}/g) ?? [gift.code]).join(' ');
     const subject = `You've received a ${amountStr} Zahrah gift card 🎁`;
@@ -228,7 +315,7 @@ export class WalletService implements OnModuleInit {
       : '';
     const html = `<div style="font-family:Arial,sans-serif;max-width:520px;color:#222">
       <h2 style="font-weight:700">You've received a gift card!</h2>
-      <p>Someone sent you a <b>${amountStr}</b> Zahrah Fashion gift card.</p>
+      <p>Someone sent you a <b>${amountStr}</b> Zahrah Fashion Hub gift card.</p>
       ${noteHtml}
       <div style="border:1px solid #e7e5e4;border-radius:12px;padding:16px;margin:16px 0;background:#faf5e6">
         <p style="margin:0;color:#6f571a;font-size:12px;letter-spacing:.08em;text-transform:uppercase">Gift card number</p>
@@ -238,13 +325,13 @@ export class WalletService implements OnModuleInit {
       </div>
       <p style="font-weight:600">How to claim</p>
       <ol style="color:#555;padding-left:18px">
-        <li>Sign in (or create an account) at Zahrah Fashion.</li>
+        <li>Sign in (or create an account) at Zahrah Fashion Hub.</li>
         <li>Go to <b>Your Account → Balance → Claim a gift card</b>.</li>
         <li>Enter the gift card number and password above — the ${amountStr} is added to your store balance.</li>
       </ol>
       <p style="color:#999;font-size:12px">Keep this password private — anyone with the number and password can claim it.</p>
     </div>`;
-    const text = `You've received a ${amountStr} Zahrah Fashion gift card.\n${note ? `\nA message for you:\n"${note}"\n` : ''}\nGift card number: ${formatted}\nClaim password: ${gift.password}\n\nHow to claim: sign in → Balance → Claim a gift card → enter the number and password. The ${amountStr} is added to your store balance.`;
+    const text = `You've received a ${amountStr} Zahrah Fashion Hub gift card.\n${note ? `\nA message for you:\n"${note}"\n` : ''}\nGift card number: ${formatted}\nClaim password: ${gift.password}\n\nHow to claim: sign in → Balance → Claim a gift card → enter the number and password. The ${amountStr} is added to your store balance.`;
     if (!apiKey) { console.warn(`[gift] email to ${to} (RESEND_API_KEY not set; not sent)`); return; }
     const body = JSON.stringify({ from, to: [to], subject, html, text });
     // Retry transient network failures — the first request after the process is

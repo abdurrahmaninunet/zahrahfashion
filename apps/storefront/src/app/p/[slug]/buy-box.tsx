@@ -1,9 +1,9 @@
 'use client';
 
 import Link from 'next/link';
-import { useEffect, useMemo, useState, type ReactNode } from 'react';
+import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { useRouter } from 'next/navigation';
-import { Check, ChevronDown, Heart, MapPin, MessageCircle, Minus, Plus, RotateCcw, ShieldCheck, ShoppingCart, Star, Trash2, Truck } from 'lucide-react';
+import { Check, ChevronDown, Copy, Facebook, Heart, Mail, MapPin, MessageCircle, Minus, Plus, RotateCcw, Share2, ShieldCheck, ShoppingCart, Star, Trash2, Truck } from 'lucide-react';
 import { api } from '@/lib/api';
 import { lineKey, useCart } from '@/lib/cart';
 import { toggleWishlist, useWishlisted } from '@/lib/wishlist';
@@ -197,15 +197,18 @@ export function BuyBox({ product, storeName, asideExtra }: {
         </Link>
         <div className="mt-1 flex items-start justify-between gap-3">
           <h1 className="text-2xl font-semibold leading-snug text-stone-900 md:text-[28px]">{product.name}</h1>
-          <button
-            type="button"
-            onClick={() => toggleWishlist(product.id)}
-            aria-label={wishlisted ? 'Remove from wishlist' : 'Save to wishlist'}
-            aria-pressed={wishlisted}
-            className="mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-stone-200 text-stone-500 transition-colors hover:border-stone-400 hover:bg-stone-50"
-          >
-            <Heart size={18} className={wishlisted ? 'fill-rose-500 text-rose-500' : ''} />
-          </button>
+          <div className="mt-0.5 flex shrink-0 items-center gap-2">
+            <ShareMenu name={product.name} slug={product.slug} />
+            <button
+              type="button"
+              onClick={() => toggleWishlist(product.id)}
+              aria-label={wishlisted ? 'Remove from wishlist' : 'Save to wishlist'}
+              aria-pressed={wishlisted}
+              className="flex h-10 w-10 items-center justify-center rounded-full border border-stone-200 text-stone-500 transition-colors hover:border-stone-400 hover:bg-stone-50 cursor-pointer"
+            >
+              <Heart size={18} className={wishlisted ? 'fill-rose-500 text-rose-500' : ''} />
+            </button>
+          </div>
         </div>
 
         {/* Rating row — real aggregate; honest empty state when there are none. */}
@@ -661,6 +664,67 @@ function WholesaleElement({
           </button>
 
           {wholesale.note && <p className="text-xs leading-relaxed text-stone-500">{wholesale.note}</p>}
+        </div>
+      )}
+    </div>
+  );
+}
+
+/** Share this product — native share sheet where available, otherwise a small
+ *  Copy link / WhatsApp / Facebook / Email menu. */
+function ShareMenu({ name, slug }: { name: string; slug: string }) {
+  const [open, setOpen] = useState(false);
+  const [copied, setCopied] = useState(false);
+  const [url, setUrl] = useState('');
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => { setUrl(`${window.location.origin}/p/${slug}`); }, [slug]);
+  useEffect(() => {
+    if (!open) return;
+    const onDoc = (e: MouseEvent) => { if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false); };
+    // Defer so the same click that opened the menu doesn't immediately close it.
+    const t = setTimeout(() => document.addEventListener('click', onDoc), 0);
+    return () => { clearTimeout(t); document.removeEventListener('click', onDoc); };
+  }, [open]);
+
+  const text = `Check out ${name} on Zahrah Fashion Hub`;
+  const wa = `https://wa.me/?text=${encodeURIComponent(`${text}: ${url}`)}`;
+  const fb = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(url)}`;
+  const mail = `mailto:?subject=${encodeURIComponent(text)}&body=${encodeURIComponent(`${text}: ${url}`)}`;
+
+  async function copy() {
+    try { await navigator.clipboard.writeText(url); setCopied(true); setTimeout(() => setCopied(false), 1500); } catch { /* ignore */ }
+  }
+
+  const item = 'flex w-full items-center gap-2.5 px-3 py-2 text-sm text-stone-700 hover:bg-stone-50 !no-underline cursor-pointer';
+
+  return (
+    <div className="relative" ref={ref}>
+      <button
+        type="button"
+        onClick={() => setOpen((o) => !o)}
+        aria-label="Share this product"
+        aria-haspopup="true"
+        aria-expanded={open}
+        className="flex h-10 w-10 items-center justify-center rounded-full border border-stone-200 text-stone-500 transition-colors hover:border-stone-400 hover:bg-stone-50 cursor-pointer"
+      >
+        <Share2 size={17} />
+      </button>
+      {open && (
+        <div className="absolute right-0 z-30 mt-2 w-48 overflow-hidden rounded-xl border border-stone-200 bg-white py-1 shadow-lg">
+          <button type="button" onClick={copy} className={item}>
+            {copied ? <Check size={15} className="text-emerald-600" /> : <Copy size={15} className="text-stone-400" />}
+            {copied ? 'Link copied' : 'Copy link'}
+          </button>
+          <a href={wa} target="_blank" rel="noopener noreferrer" className={item} onClick={() => setOpen(false)}>
+            <MessageCircle size={15} className="text-emerald-600" /> WhatsApp
+          </a>
+          <a href={fb} target="_blank" rel="noopener noreferrer" className={item} onClick={() => setOpen(false)}>
+            <Facebook size={15} className="text-blue-600" /> Facebook
+          </a>
+          <a href={mail} className={item} onClick={() => setOpen(false)}>
+            <Mail size={15} className="text-stone-400" /> Email
+          </a>
         </div>
       )}
     </div>

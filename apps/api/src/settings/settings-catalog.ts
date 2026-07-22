@@ -22,7 +22,7 @@ export interface SettingDef {
 
 export const SETTINGS_CATALOG: SettingDef[] = [
   // ── 7.1 Store identity & locale ─────────────────────────────────────────
-  { key: 'store.name', domain: 'Store identity', label: 'Store name', description: 'Displayed on the storefront, documents and notifications.', type: 'string', editableBy: 'manager', default: 'Zahrah Fashion' },
+  { key: 'store.name', domain: 'Store identity', label: 'Store name', description: 'Displayed on the storefront, documents and notifications.', type: 'string', editableBy: 'manager', default: 'Zahrah Fashion Hub' },
   { key: 'store.logo_url', domain: 'Store identity', label: 'Logo', description: 'Logo used on storefront and documents.', type: 'string', editableBy: 'manager', default: '' },
   { key: 'store.phone', domain: 'Store identity', label: 'Contact phone', description: 'Public contact phone number.', type: 'string', editableBy: 'manager', default: '' },
   { key: 'store.whatsapp', domain: 'Store identity', label: 'WhatsApp number', description: 'WhatsApp Business number for click-to-chat (D-32).', type: 'string', editableBy: 'manager', default: '' },
@@ -32,6 +32,9 @@ export const SETTINGS_CATALOG: SettingDef[] = [
   { key: 'store.currency', domain: 'Store identity', label: 'Currency', description: 'Store currency (fixed NGN in Phase 1).', type: 'string', editableBy: 'owner', default: 'NGN' },
   { key: 'store.timezone', domain: 'Store identity', label: 'Timezone', description: 'All schedules and report boundaries use this timezone.', type: 'string', editableBy: 'owner', default: 'Africa/Lagos' },
   { key: 'store.week_start', domain: 'Store identity', label: 'Week start', description: 'First day of the week for reports.', type: 'enum', enumValues: ['monday', 'sunday'], editableBy: 'owner', default: 'monday' },
+
+  // Storefront marketing content
+  { key: 'homepage.fabrics_count', domain: 'Storefront', label: 'Homepage “premium fabrics” number', description: 'The number shown in the homepage band “Over N premium fabrics”.', type: 'int', editableBy: 'manager', default: 1000, min: 0 },
 
   // ── MIM store (custom printing) ──────────────────────────────────────────
   { key: 'mim.enabled', domain: 'MIM store', label: 'MIM store enabled', description: 'Master switch for the MIM custom-printing store. When off, the MIM header link and the homepage MIM section are hidden and /mim is unavailable.', type: 'bool', editableBy: 'manager', default: true },
@@ -82,11 +85,11 @@ export const SETTINGS_CATALOG: SettingDef[] = [
   { key: 'customers.risk_degraded_mode', domain: 'Customers & privacy', label: 'risk_check degraded mode', description: 'Fail-open for prepaid, fail-closed for POD when risk service is unavailable.', type: 'json', editableBy: 'owner', default: { prepaid: 'fail_open', pod: 'fail_closed' } },
 
   // ── 7.7 Notifications & system ───────────────────────────────────────────
-  { key: 'notifications.sender_name', domain: 'Notifications & system', label: 'Email sender name', description: 'SendGrid sender identity.', type: 'string', editableBy: 'manager', default: 'Zahrah Fashion' },
+  { key: 'notifications.sender_name', domain: 'Notifications & system', label: 'Email sender name', description: 'SendGrid sender identity.', type: 'string', editableBy: 'manager', default: 'Zahrah Fashion Hub' },
   { key: 'notifications.sender_email', domain: 'Notifications & system', label: 'Email sender address', description: 'SendGrid verified sender address.', type: 'string', editableBy: 'manager', default: '' },
   { key: 'notifications.termii_sender_id', domain: 'Notifications & system', label: 'Termii sender ID', description: 'SMS sender ID (Phase 2 OTP).', type: 'string', editableBy: 'manager', default: '' },
   { key: 'notifications.alert_recipients', domain: 'Notifications & system', label: 'Internal alert recipients', description: 'Roles receiving webhook-failure/reconciliation alerts.', type: 'json', editableBy: 'manager', default: ['owner', 'manager'] },
-  { key: 'notifications.whatsapp_chat', domain: 'Notifications & system', label: 'WhatsApp click-to-chat', description: 'D-32: floating chat element config (number + prefilled message).', type: 'json', editableBy: 'manager', default: { number: '', message: 'Hello Zahrah Fashion! I would like to ask about…' } },
+  { key: 'notifications.whatsapp_chat', domain: 'Notifications & system', label: 'WhatsApp click-to-chat', description: 'D-32: floating chat element config (number + prefilled message).', type: 'json', editableBy: 'manager', default: { number: '', message: 'Hello Zahrah Fashion Hub! I would like to ask about…' } },
   { key: 'security.session_idle_minutes', domain: 'Notifications & system', label: 'Session idle expiry (minutes)', description: 'D-42: staff sessions expire after this idle time.', type: 'int', editableBy: 'owner', default: 60, min: 5, max: 480 },
   { key: 'security.session_absolute_hours', domain: 'Notifications & system', label: 'Session absolute expiry (hours)', description: 'D-42: hard session lifetime.', type: 'int', editableBy: 'owner', default: 12, min: 1, max: 24 },
   { key: 'security.fulfilment_idle_hours', domain: 'Notifications & system', label: 'Fulfilment device idle expiry (hours)', description: 'D-42: longer idle window for packing-table devices.', type: 'int', editableBy: 'owner', default: 4, min: 1, max: 12 },

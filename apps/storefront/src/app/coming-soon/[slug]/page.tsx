@@ -14,7 +14,7 @@ function titleFromSlug(slug: string): string {
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
   const { slug } = await params;
   const title = titleFromSlug(slug);
-  return { title: `${title} — Coming soon`, description: `Our ${title} collection is coming soon to Zahra Fashion.` };
+  return { title: `${title} — Coming soon`, description: `Our ${title} collection is coming soon to Zahrah Fashion Hub.` };
 }
 
 export default async function ComingSoonPage({ params }: { params: Promise<{ slug: string }> }) {

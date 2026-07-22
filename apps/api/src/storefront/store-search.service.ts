@@ -32,17 +32,22 @@ export class StoreSearchService {
   }
 
   private async matchProductIds(terms: string[], limit: number): Promise<string[]> {
-    // Trigram similarity over name + tags + category name; ILIKE fast-path.
+    // Trigram similarity over name + tags + category name, plus ILIKE matches on
+    // colour, occasions and the assigned collection's name (S-search-by-attrs).
     const rows = await this.prisma.$queryRaw<{ id: string; score: number }[]>`
       SELECT p.id,
              GREATEST(
                MAX(similarity(p.name, term.q)),
                MAX(similarity(c.name, term.q)),
                MAX(CASE WHEN p.name ILIKE '%' || term.q || '%' THEN 1.0 ELSE 0 END),
-               MAX(CASE WHEN EXISTS (SELECT 1 FROM unnest(p.tags) t WHERE t ILIKE '%' || term.q || '%') THEN 0.9 ELSE 0 END)
+               MAX(CASE WHEN EXISTS (SELECT 1 FROM unnest(p.tags) t WHERE t ILIKE '%' || term.q || '%') THEN 0.9 ELSE 0 END),
+               MAX(CASE WHEN p.attribute_values->>'_colour' ILIKE '%' || term.q || '%' THEN 0.95 ELSE 0 END),
+               MAX(CASE WHEN p.attribute_values->>'_occasions' ILIKE '%' || term.q || '%' THEN 0.9 ELSE 0 END),
+               MAX(CASE WHEN col.name ILIKE '%' || term.q || '%' THEN 0.9 ELSE 0 END)
              ) AS score
       FROM products p
       JOIN categories c ON c.id = p.category_id
+      LEFT JOIN collections col ON col.id = (p.attribute_values->>'_collectionId')
       CROSS JOIN unnest(${terms}::text[]) AS term(q)
       WHERE p.status = 'active' AND p.visibility = 'visible'
       GROUP BY p.id
@@ -50,7 +55,10 @@ export class StoreSearchService {
                MAX(similarity(p.name, term.q)),
                MAX(similarity(c.name, term.q)),
                MAX(CASE WHEN p.name ILIKE '%' || term.q || '%' THEN 1.0 ELSE 0 END),
-               MAX(CASE WHEN EXISTS (SELECT 1 FROM unnest(p.tags) t WHERE t ILIKE '%' || term.q || '%') THEN 0.9 ELSE 0 END)
+               MAX(CASE WHEN EXISTS (SELECT 1 FROM unnest(p.tags) t WHERE t ILIKE '%' || term.q || '%') THEN 0.9 ELSE 0 END),
+               MAX(CASE WHEN p.attribute_values->>'_colour' ILIKE '%' || term.q || '%' THEN 0.95 ELSE 0 END),
+               MAX(CASE WHEN p.attribute_values->>'_occasions' ILIKE '%' || term.q || '%' THEN 0.9 ELSE 0 END),
+               MAX(CASE WHEN col.name ILIKE '%' || term.q || '%' THEN 0.9 ELSE 0 END)
              ) > 0.25
       ORDER BY score DESC
       LIMIT ${limit}`;

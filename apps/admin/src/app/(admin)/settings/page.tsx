@@ -102,7 +102,7 @@ function LocationDialog({ location, onClose }: { location: StoreLocation | null;
   return (
     <Dialog open onClose={onClose} title={location ? `Edit ${location.name}` : 'Add a shop'}>
       <div className="space-y-3">
-        <Field label="Store name"><Input value={form.name} onChange={set('name')} placeholder="e.g. Zahra Fashion — Wuse 2" /></Field>
+        <Field label="Store name"><Input value={form.name} onChange={set('name')} placeholder="e.g. Zahrah Fashion Hub — Wuse 2" /></Field>
         <div className="grid grid-cols-2 gap-3">
           <Field label="Contact phone"><Input value={form.phone} onChange={set('phone')} placeholder="0803 123 4567" /></Field>
           <Field label="WhatsApp number"><Input value={form.whatsapp} onChange={set('whatsapp')} placeholder="+234 803 123 4567" /></Field>

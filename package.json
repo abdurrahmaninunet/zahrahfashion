@@ -2,7 +2,7 @@
   "name": "zahrah-fashion",
   "private": true,
   "version": "0.1.0",
-  "description": "Zahrah Fashion ecommerce platform — admin portal, API, storefront",
+  "description": "Zahrah Fashion Hub ecommerce platform — admin portal, API, storefront",
   "workspaces": [
     "apps/*",
     "packages/*"
@@ -14,8 +14,9 @@
     "prisma:generate": "npm run prisma:generate --workspace=@zahrah/api",
     "prisma:migrate": "npm run prisma:migrate --workspace=@zahrah/api",
     "seed": "npm run seed --workspace=@zahrah/api",
-    "dev": "concurrently -n api,admin,store -c blue,green,yellow \"npm:dev:api\" \"npm:dev:admin\" \"npm:dev:store\"",
-    "dev:store": "npm run dev --workspace=@zahrah/storefront"
+    "dev": "concurrently -n api,admin,store,partner -c blue,green,yellow,magenta \"npm:dev:api\" \"npm:dev:admin\" \"npm:dev:store\" \"npm:dev:partner\"",
+    "dev:store": "npm run dev --workspace=@zahrah/storefront",
+    "dev:partner": "npm run dev --workspace=@zahrah/partner"
   },
   "engines": {
     "node": ">=20"
