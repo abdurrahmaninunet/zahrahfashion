@@ -159,57 +159,61 @@ export function ProductTile({ item }: { item: ProductTileData }) {
       <div className="flex flex-1 flex-col p-2">
         <Link
           href={item.href}
-          className="line-clamp-2 min-h-[2.4rem] text-[13px] leading-snug text-stone-700 hover:text-stone-950"
+          className="line-clamp-2 text-[13px] leading-snug text-stone-700 hover:text-stone-950"
         >
           {item.name}
         </Link>
 
-        {/* Star rating — only when there are real reviews. Also hides when ratings
-            are turned off globally (the rating comes back null → hasReviews false). */}
-        {hasReviews && (
-        <div className="mt-1 flex items-center gap-1">
-          <span
-            className="flex items-center"
-            aria-label={hasReviews ? `${rating.toFixed(1)} out of 5 stars` : "No ratings yet"}
-          >
-            {[0, 1, 2, 3, 4].map((i) => (
-              <Star
-                key={i}
-                size={12}
-                className={
-                  hasReviews && i < Math.round(rating)
-                    ? "fill-amber-400 text-amber-400"
-                    : "fill-stone-200 text-stone-200"
-                }
-              />
-            ))}
-          </span>
-          {hasReviews ? (
-            <>
-              <span className="text-[11px] font-medium text-stone-700">
-                {rating.toFixed(1)}
-              </span>
-              <span className="text-[11px] text-stone-400">({item.reviews})</span>
-            </>
-          ) : (
-            <span className="text-[11px] text-stone-400">No ratings</span>
+        {/* Rating + price + stock — vertically centered in the space between the
+            product name and the Add-to-cart button (flex-1 fills that gap). */}
+        <div className="flex flex-1 flex-col justify-center gap-1 py-2.5">
+          {/* Star rating — only when there are real reviews. Also hides when ratings
+              are turned off globally (the rating comes back null → hasReviews false). */}
+          {hasReviews && (
+          <div className="flex items-center gap-1">
+            <span
+              className="flex items-center"
+              aria-label={hasReviews ? `${rating.toFixed(1)} out of 5 stars` : "No ratings yet"}
+            >
+              {[0, 1, 2, 3, 4].map((i) => (
+                <Star
+                  key={i}
+                  size={12}
+                  className={
+                    hasReviews && i < Math.round(rating)
+                      ? "fill-amber-400 text-amber-400"
+                      : "fill-stone-200 text-stone-200"
+                  }
+                />
+              ))}
+            </span>
+            {hasReviews ? (
+              <>
+                <span className="text-[11px] font-medium text-stone-700">
+                  {rating.toFixed(1)}
+                </span>
+                <span className="text-[11px] text-stone-400">({item.reviews})</span>
+              </>
+            ) : (
+              <span className="text-[11px] text-stone-400">No ratings</span>
+            )}
+          </div>
           )}
-        </div>
-        )}
 
-        {/* Price — current, was-price and discount all on one line */}
-        <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-0.5">
-          <span className="tabular text-base font-bold text-stone-900">{naira(item.price)}</span>
-          {item.compareAt != null && item.compareAt > item.price && (
-            <span className="tabular text-[11px] text-stone-400 line-through">{naira(item.compareAt)}</span>
-          )}
-          {off > 0 && (
-            <span className="text-[11px] font-bold text-[#c02b2b]">−{off}%</span>
+          {/* Price — current, was-price and discount all on one line */}
+          <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5">
+            <span className="tabular text-base font-bold leading-none text-stone-900">{naira(item.price)}</span>
+            {item.compareAt != null && item.compareAt > item.price && (
+              <span className="tabular text-[11px] leading-none text-stone-400 line-through">{naira(item.compareAt)}</span>
+            )}
+            {off > 0 && (
+              <span className="text-[11px] font-bold leading-none text-[#c02b2b]">−{off}%</span>
+            )}
+          </div>
+          {item.onlyLeft != null && (
+            <p className="text-[11px] font-medium text-amber-600">Only {item.onlyLeft} left</p>
           )}
         </div>
-        {item.onlyLeft != null && (
-          <p className="mt-0.5 text-[11px] font-medium text-amber-600">Only {item.onlyLeft} left</p>
-        )}
 
         {/* Add to cart → quantity stepper once in the cart (Amazon-style).
             mt-auto keeps it bottom-aligned across all cards. */}
