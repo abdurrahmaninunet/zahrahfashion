@@ -74,7 +74,7 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
       )}>
         <div className="flex h-14 items-center gap-2 border-b border-stone-100 px-4">
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/logo.svg" alt="" aria-hidden="true" className="h-7 w-7" />
+          <img src="/logo.png" alt="" aria-hidden="true" className="h-8 w-auto" />
           <span className="font-semibold">Zahrah Fashion Hub</span>
           <button className="ml-auto lg:hidden cursor-pointer" onClick={() => setMobileNav(false)}><X size={18} /></button>
         </div>

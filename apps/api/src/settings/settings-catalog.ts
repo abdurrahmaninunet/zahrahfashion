@@ -35,6 +35,7 @@ export const SETTINGS_CATALOG: SettingDef[] = [
 
   // Storefront marketing content
   { key: 'homepage.fabrics_count', domain: 'Storefront', label: 'Homepage “premium fabrics” number', description: 'The number shown in the homepage band “Over N premium fabrics”.', type: 'int', editableBy: 'manager', default: 1000, min: 0 },
+  { key: 'storefront.show_ratings', domain: 'Storefront', label: 'Show product ratings', description: 'When off, star ratings are hidden everywhere on the storefront. Written reviews (comments) still show.', type: 'bool', editableBy: 'manager', default: true },
 
   // ── MIM store (custom printing) ──────────────────────────────────────────
   { key: 'mim.enabled', domain: 'MIM store', label: 'MIM store enabled', description: 'Master switch for the MIM custom-printing store. When off, the MIM header link and the homepage MIM section are hidden and /mim is unavailable.', type: 'bool', editableBy: 'manager', default: true },

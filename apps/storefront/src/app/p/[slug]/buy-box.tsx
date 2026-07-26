@@ -31,7 +31,8 @@ export interface PdpProduct {
   anko: { enabled: boolean; increment: number; unitPrice: number; exclusivityDays: number; note: string | null; lockedUntil: string | null } | null;
   sellFormats: { id: string; label: string; price: number; baseQty: number; minQty: number; increment: number; fractional: boolean; default: boolean }[];
   baseUnit: string | null;
-  rating?: { average: number; count: number };
+  rating?: { average: number; count: number } | null;
+  ratingsEnabled?: boolean;
   bundle: {
     price: number; worth: number; savings: number; available: number;
     onlyLeft: number | null; soldOut: boolean;
@@ -211,7 +212,8 @@ export function BuyBox({ product, storeName, asideExtra }: {
           </div>
         </div>
 
-        {/* Rating row — real aggregate; honest empty state when there are none. */}
+        {/* Rating row — hidden entirely when ratings are turned off globally. */}
+        {product.ratingsEnabled !== false && (
         <a href="#reviews" className="mt-2 inline-flex items-center gap-2 text-sm text-stone-500 hover:text-stone-800">
           <Stars value={product.rating?.average ?? 0} />
           {product.rating && product.rating.count > 0 ? (
@@ -227,6 +229,7 @@ export function BuyBox({ product, storeName, asideExtra }: {
             </>
           )}
         </a>
+        )}
 
         <hr className="my-4 border-stone-200" />
 

@@ -109,7 +109,7 @@ export class ContentController implements OnModuleInit {
 
   @Post('media')
   @Cap('content.media')
-  @UseInterceptors(FileInterceptor('file'))
+  @UseInterceptors(FileInterceptor('file', { limits: { fileSize: 50 * 1024 * 1024 } }))
   async uploadMedia(
     @UploadedFile() file: { originalname: string; mimetype: string; size: number; buffer: Buffer } | undefined,
     @Body() body: { baseAlt?: string; tags?: string },

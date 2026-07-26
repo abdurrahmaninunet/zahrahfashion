@@ -57,7 +57,7 @@ export default async function MimProductPage({ params }: { params: Promise<{ slu
       </div>
 
       {/* Below the fold: ratings & reviews (same as the standard product page) */}
-      <Reviews productId={product.id} slug={slug} />
+      <Reviews productId={product.id} slug={slug} ratingsEnabled={product.ratingsEnabled} />
 
       {/* Related MIM products */}
       <MimRelated currentId={product.id} />

@@ -41,7 +41,7 @@ export function PortalHeader({ active }: { active?: 'catalog' | 'orders' | 'acco
       <div className="mx-auto flex max-w-[1905px] items-center gap-x-6 px-4 py-3.5 lg:px-6 xl:px-12 2xl:px-[8rem]">
         <Link href="/catalog" className="flex flex-1 items-center gap-2">
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/logo.svg" alt="" aria-hidden="true" className="h-8 w-8 shrink-0" />
+          <img src="/logo.png" alt="" aria-hidden="true" className="h-9 w-auto shrink-0" />
           <span className="font-display whitespace-nowrap text-[18px] font-bold sm:text-[22px]">Zahrah Fashion Hub</span>
           <span className="hidden rounded-full bg-accent-50 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-widest text-accent-700 sm:inline">Partners</span>
         </Link>

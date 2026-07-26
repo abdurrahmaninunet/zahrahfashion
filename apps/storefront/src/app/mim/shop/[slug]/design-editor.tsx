@@ -163,6 +163,18 @@ export default function DesignEditor({ productName, sides, initial, onSave }: {
     tr.getLayer()?.batchDraw();
   }, [selectedId, elements, activeId]);
 
+  // react-konva doesn't reliably repaint when the async background image finishes
+  // loading, and resizing the stage clears its bitmap — either leaves the product
+  // invisible (just the print-area outline shows). Force full synchronous redraws
+  // across the settle window whenever the background/size/side changes.
+  useEffect(() => {
+    const draw = () => stageRef.current?.draw();
+    draw();
+    const r = requestAnimationFrame(draw);
+    const t = setTimeout(draw, 150);
+    return () => { cancelAnimationFrame(r); clearTimeout(t); };
+  }, [bg, size, activeId, elements]);
+
   const selected = elements.find((e) => e.id === selectedId) ?? null;
   const setElements = (updater: (els: DesignElement[]) => DesignElement[]) =>
     setElementsBySide((all) => ({ ...all, [active.id]: updater(all[active.id] ?? []) }));

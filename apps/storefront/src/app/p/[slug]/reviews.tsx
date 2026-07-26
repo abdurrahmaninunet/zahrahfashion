@@ -22,7 +22,7 @@ function Stars({ value, size = 14 }: { value: number; size?: number }) {
 
 const INITIAL = 4;
 
-export function Reviews({ productId, slug }: { productId: string; slug: string }) {
+export function Reviews({ productId, slug, ratingsEnabled = true }: { productId: string; slug: string; ratingsEnabled?: boolean }) {
   const qc = useQueryClient();
   const [expanded, setExpanded] = useState(false);
 
@@ -47,10 +47,11 @@ export function Reviews({ productId, slug }: { productId: string; slug: string }
 
   return (
     <section id="reviews" className="mt-12 scroll-mt-24 border-t border-stone-200 pt-8">
-      <h2 className="font-display text-xl font-bold">Ratings &amp; reviews</h2>
+      <h2 className="font-display text-xl font-bold">{ratingsEnabled ? 'Ratings & reviews' : 'Reviews'}</h2>
 
-      <div className="mt-5 grid gap-8 md:grid-cols-[240px_minmax(0,1fr)]">
-        {/* Summary + distribution */}
+      <div className={ratingsEnabled ? 'mt-5 grid gap-8 md:grid-cols-[240px_minmax(0,1fr)]' : 'mt-5'}>
+        {/* Summary + distribution — hidden when ratings are turned off globally */}
+        {ratingsEnabled && (
         <div className="h-fit">
           {summary.count > 0 ? (
             <>
@@ -80,6 +81,7 @@ export function Reviews({ productId, slug }: { productId: string; slug: string }
             </div>
           )}
         </div>
+        )}
 
         {/* Write area + review list */}
         <div>
@@ -95,7 +97,7 @@ export function Reviews({ productId, slug }: { productId: string; slug: string }
                       <span className="text-sm font-medium text-stone-800">{r.author}</span>
                       <span className="inline-flex items-center gap-1 text-xs text-emerald-600"><Check size={12} /> Verified purchase</span>
                     </div>
-                    <div className="mt-2"><Stars value={r.rating} /></div>
+                    {ratingsEnabled && <div className="mt-2"><Stars value={r.rating} /></div>}
                     <p className="mt-1 text-xs text-stone-400">{new Date(r.createdAt).toLocaleDateString('en-NG', { day: 'numeric', month: 'short', year: 'numeric' })}</p>
                     {r.body && <p className="mt-2 text-sm leading-relaxed text-stone-600">{r.body}</p>}
                   </li>

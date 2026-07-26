@@ -133,7 +133,7 @@ function LefeForm({ id, onClose }: { id: string | null; onClose: () => void }) {
       const form = new FormData();
       form.append('file', file);
       form.append('baseAlt', name || 'Lefe');
-      const asset = await api.postForm<{ url: string }>('/content/media', form);
+      const asset = await api.uploadMedia<{ url: string }>(form);
       setCoverUrl(asset.url);
     } catch (e) { setError(e); } finally { setUploading(false); }
   }

@@ -7,7 +7,8 @@ import { PutObjectCommand, S3Client } from '@aws-sdk/client-s3';
 import { PrismaService } from '../prisma/prisma.service';
 
 const ALLOWED_MIME = new Set(['image/jpeg', 'image/png', 'image/webp']);
-const MAX_SIZE = 8 * 1024 * 1024; // 8MB
+const MAX_SIZE = 50 * 1024 * 1024; // 50MB — allow high-resolution (8K) product/showcase photos
+const MAX_DIM = 2560; // cap the stored original so 8K uploads don't exhaust memory
 const RENDITION_WIDTHS = [480, 960, 1600];
 
 /**
@@ -63,7 +64,7 @@ export class MediaService {
     if (!ALLOWED_MIME.has(file.mimetype)) {
       throw new BadRequestException('Only JPG, PNG and WebP images are allowed (FR-MED-04)');
     }
-    if (file.size > MAX_SIZE) throw new BadRequestException('Image exceeds the 8MB limit');
+    if (file.size > MAX_SIZE) throw new BadRequestException('Image exceeds the 50MB limit');
 
     const contentHash = createHash('sha256').update(file.buffer).digest('hex');
     const existing = await this.prisma.mediaAsset.findUnique({
@@ -76,16 +77,29 @@ export class MediaService {
     const ext = file.mimetype === 'image/png' ? 'png' : file.mimetype === 'image/webp' ? 'webp' : 'jpg';
     const baseName = contentHash.slice(0, 16);
 
-    const url = await this.store(`media/${baseName}.${ext}`, file.buffer, file.mimetype);
+    // Downscale very large originals (e.g. 8K photos) before storing — keeps
+    // memory bounded and file sizes sane. 2560px is ample for full-screen web.
+    let original = file.buffer;
+    let width = meta.width ?? null;
+    let height = meta.height ?? null;
+    if ((meta.width ?? 0) > MAX_DIM || (meta.height ?? 0) > MAX_DIM) {
+      const p = sharp(file.buffer).resize({ width: MAX_DIM, height: MAX_DIM, fit: 'inside', withoutEnlargement: true });
+      original = await (ext === 'png' ? p.png() : ext === 'webp' ? p.webp({ quality: 88 }) : p.jpeg({ quality: 88 })).toBuffer();
+      const m2 = await sharp(original).metadata();
+      width = m2.width ?? width;
+      height = m2.height ?? height;
+    }
+
+    const url = await this.store(`media/${baseName}.${ext}`, original, file.mimetype);
 
     const asset = await this.prisma.mediaAsset.create({
       data: {
         filename: file.originalname,
         contentHash,
         mime: file.mimetype,
-        width: meta.width ?? null,
-        height: meta.height ?? null,
-        sizeBytes: file.size,
+        width,
+        height,
+        sizeBytes: original.length,
         url,
         baseAlt: baseAlt ?? null,
         tags: tags ?? [],
@@ -93,13 +107,13 @@ export class MediaService {
       },
     });
 
-    // WebP renditions (FR-MED-02 pipeline).
-    for (const width of RENDITION_WIDTHS) {
-      if (meta.width && meta.width <= width) continue;
-      const buffer = await sharp(file.buffer).resize({ width }).webp({ quality: 82 }).toBuffer();
-      const renditionUrl = await this.store(`media/${baseName}-w${width}.webp`, buffer, 'image/webp');
+    // WebP renditions (FR-MED-02 pipeline) — generated from the (capped) original.
+    for (const w of RENDITION_WIDTHS) {
+      if (width && width <= w) continue;
+      const buffer = await sharp(original).resize({ width: w }).webp({ quality: 82 }).toBuffer();
+      const renditionUrl = await this.store(`media/${baseName}-w${w}.webp`, buffer, 'image/webp');
       await this.prisma.mediaRendition.create({
-        data: { assetId: asset.id, width, format: 'webp', url: renditionUrl },
+        data: { assetId: asset.id, width: w, format: 'webp', url: renditionUrl },
       });
     }
 

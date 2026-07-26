@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { useEffect, useRef, useState } from 'react';
 import { ChevronLeft, ChevronRight, MessageCircle } from 'lucide-react';
 import { whatsappLink } from '@/lib/format';
+import { HeroShowcase } from '@/components/hero-showcase';
 
 interface Slide {
   // image/link may be a plain string (URL) or an object — tolerate both.
@@ -12,6 +13,8 @@ interface Slide {
   subtext?: string;
   ctaLabel?: string;
   link?: string | { url?: string };
+  // Optional rotating-prism images (fabric + customers wearing it).
+  showcase?: (string | { url?: string })[];
 }
 
 const urlOf = (v?: string | { url?: string }) => (typeof v === 'string' ? v : v?.url);
@@ -51,7 +54,7 @@ export function HeroSlider({ slides, priority, whatsapp }: { slides: Slide[]; pr
         touchStart.current = null;
       }}
     >
-      <div className="relative mx-auto h-[420px] max-w-[1905px] md:h-[400px]">
+      <div className="relative mx-auto h-[600px] max-w-[1905px] md:h-[600px]">
         {slides.map((slide, i) => (
           <div
             key={i}
@@ -63,47 +66,59 @@ export function HeroSlider({ slides, priority, whatsapp }: { slides: Slide[]; pr
                 <h2 className="max-w-lg font-display text-3xl font-bold leading-tight text-stone-900 md:text-5xl">{slide.headline}</h2>
               )}
               {slide.subtext && <p className="mt-3 text-stone-600 md:text-lg">{slide.subtext}</p>}
-              <div className="mt-6 flex flex-wrap items-center gap-2.5">
-                {slide.ctaLabel && (
-                  <Link
-                    href={urlOf(slide.link) || '/'}
-                    className="inline-block whitespace-nowrap rounded-sm bg-stone-900 px-6 py-3 text-sm font-semibold text-white transition-colors hover:bg-stone-700"
-                  >
-                    {slide.ctaLabel}
-                  </Link>
-                )}
-                {/* Static quick-actions, shown on every slide */}
+              {/* Clear CTA hierarchy: one primary (gold), one secondary (outline),
+                  one tertiary (text link) — a single obvious decision path. */}
+              <div className="mt-6 flex flex-wrap items-center gap-x-4 gap-y-3">
+                {/* Primary — gold, the main action */}
                 <Link
-                  href="/shops"
-                  className="inline-block whitespace-nowrap rounded-sm border border-stone-400 bg-white/70 px-5 py-3 text-sm font-semibold text-stone-900 transition-colors hover:border-stone-900 hover:bg-white"
+                  href={urlOf(slide.link) || '/'}
+                  className="inline-block whitespace-nowrap rounded-sm bg-[#c9a227] px-7 py-3.5 text-sm font-bold text-stone-900 shadow-sm transition-colors hover:bg-[#b8901f]"
                 >
-                  Visit Our Stores
+                  {slide.ctaLabel || 'Shop Collection'}
                 </Link>
+                {/* Secondary — outline */}
                 {wa && (
                   <a
                     href={wa}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="inline-flex shrink-0 items-center gap-2 whitespace-nowrap rounded-sm bg-[#25d366] px-5 py-3 text-sm font-semibold text-white transition-colors hover:bg-[#20bd5a]"
+                    className="inline-flex shrink-0 items-center gap-2 whitespace-nowrap rounded-sm bg-white/80 px-6 py-3 text-sm font-semibold text-stone-900 transition-colors hover:bg-white"
                   >
-                    <MessageCircle size={16} /> Chat on WhatsApp
+                    <MessageCircle size={16} className="text-[#25d366]" /> Chat on WhatsApp
                   </a>
                 )}
+                {/* Tertiary — quiet text link */}
+                <Link
+                  href="/shops"
+                  className="whitespace-nowrap text-sm font-semibold text-stone-700 underline underline-offset-4 transition-colors hover:text-stone-900"
+                >
+                  Visit Our Stores
+                </Link>
               </div>
             </div>
-            <div className="relative hidden h-[300px] overflow-hidden rounded-xl md:block">
-              {urlOf(slide.image) ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img
-                  src={urlOf(slide.image)!}
-                  alt={(typeof slide.image === 'object' ? slide.image.alt : undefined) ?? slide.headline ?? ''}
-                  loading={i === 0 && priority ? 'eager' : 'lazy'}
-                  fetchPriority={i === 0 && priority ? 'high' : undefined}
-                  className="h-full w-full object-cover"
-                />
-              ) : (
-                <div className="absolute inset-0 bg-gradient-to-br from-[#c9a227] via-[#8a6d1f] to-[#3d3010]" />
-              )}
+            <div className="relative hidden h-[500px] md:block">
+              {(() => {
+                const showcase = (slide.showcase ?? []).map(urlOf).filter((u): u is string => !!u);
+                if (showcase.length >= 2) {
+                  return <HeroShowcase images={showcase} alt={slide.headline} />;
+                }
+                return (
+                  <div className="relative h-full overflow-hidden rounded-xl">
+                    {urlOf(slide.image) ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img
+                        src={urlOf(slide.image)!}
+                        alt={(typeof slide.image === 'object' ? slide.image.alt : undefined) ?? slide.headline ?? ''}
+                        loading={i === 0 && priority ? 'eager' : 'lazy'}
+                        fetchPriority={i === 0 && priority ? 'high' : undefined}
+                        className="h-full w-full object-cover"
+                      />
+                    ) : (
+                      <div className="absolute inset-0 bg-gradient-to-br from-[#c9a227] via-[#8a6d1f] to-[#3d3010]" />
+                    )}
+                  </div>
+                );
+              })()}
             </div>
           </div>
         ))}

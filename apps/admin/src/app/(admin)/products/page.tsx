@@ -3,8 +3,8 @@
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Suspense, useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
-import { Plus, SlidersHorizontal } from 'lucide-react';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { Plus, SlidersHorizontal, Star } from 'lucide-react';
 import { api } from '@/lib/api';
 import { useAuth } from '@/lib/auth';
 import { naira, qty } from '@/lib/format';
@@ -29,6 +29,16 @@ function ProductsPageInner() {
   const [page, setPage] = useState(1);
 
   const { data: categories } = useQuery({ queryKey: ['categories'], queryFn: () => api.get<Category[]>('/categories') });
+
+  // Global star-ratings toggle (Settings → Storefront). Turning it off hides all
+  // product ratings across the storefront; written reviews still show.
+  const qc = useQueryClient();
+  const { data: settings } = useQuery({ queryKey: ['settings'], queryFn: () => api.get<{ key: string; value: unknown }[]>('/settings') });
+  const showRatings = (settings?.find((s) => s.key === 'storefront.show_ratings')?.value ?? true) !== false;
+  const toggleRatings = useMutation({
+    mutationFn: () => api.put('/settings/storefront.show_ratings', { value: !showRatings }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['settings'] }),
+  });
 
   // Tree-ordered options: each root followed by its children, mirroring the
   // Categories screen's positioning.
@@ -68,6 +78,18 @@ function ProductsPageInner() {
           <option value="">All categories</option>
           {categoryOptions.map((c) => <option key={c.id} value={c.id}>{c.label}</option>)}
         </Select>
+        {hasCap('settings.edit') && (
+          <button
+            type="button"
+            onClick={() => toggleRatings.mutate()}
+            disabled={toggleRatings.isPending}
+            title="Show or hide star ratings across the storefront (written reviews still show)"
+            className={`inline-flex items-center gap-2 rounded-md border px-3 py-2 text-sm font-medium transition-colors disabled:opacity-50 ${showRatings ? 'border-brand-500 bg-brand-50 text-brand-700' : 'border-stone-300 text-stone-500 hover:border-stone-400'}`}
+          >
+            <Star size={15} className={showRatings ? 'fill-amber-400 text-amber-400' : ''} />
+            Ratings: {showRatings ? 'On' : 'Off'}
+          </button>
+        )}
         <Select value={status} onChange={(e) => { setStatus(e.target.value); setPage(1); }} className="w-32">
           <option value="">All statuses</option>
           <option value="draft">Draft</option>

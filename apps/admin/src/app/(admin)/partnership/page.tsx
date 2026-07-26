@@ -155,7 +155,7 @@ function ProductDialog({ product, onClose }: { product: PartnerProduct | null; o
     try {
       const fd = new FormData();
       fd.append('file', files[0]);
-      const asset = await api.postForm<{ url: string }>('/content/media', fd);
+      const asset = await api.uploadMedia<{ url: string }>(fd);
       updateStyle(i, { image: asset.url });
     } catch (e) { setError(e); } finally { setStyleUploading(null); }
   }

@@ -3,7 +3,7 @@
 import { useSearchParams } from 'next/navigation';
 import { Suspense, useEffect, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { ArrowDown, ArrowUp, Check, ImageIcon, Plus, Search, Trash2, Upload, X } from 'lucide-react';
+import { ArrowDown, ArrowUp, Check, ImageIcon, Loader2, Plus, Search, Trash2, Upload, X } from 'lucide-react';
 import { api } from '@/lib/api';
 import { Badge, Button, Card, Dialog, ErrorNote, Field, Input, PageHeader, Spinner, Table, Tabs, Td, Textarea, statusColor } from '@/components/ui';
 
@@ -86,23 +86,27 @@ export default function ContentPage() {
 
 // ── Hero slider editor ────────────────────────────────────────────────────────
 
-interface Slide { image: string; headline: string; subtext: string; ctaLabel: string; link: string }
-const EMPTY_SLIDE: Slide = { image: '', headline: '', subtext: '', ctaLabel: '', link: '' };
+interface Slide { image: string; headline: string; subtext: string; ctaLabel: string; link: string; showcase: string[] }
+const EMPTY_SLIDE: Slide = { image: '', headline: '', subtext: '', ctaLabel: '', link: '', showcase: [] };
 
 /** The stored hero schema uses a "link" field ({ url }); the editor uses a plain
  *  string, so convert on load/save (and tolerate legacy string links). */
 function fromStoredSlide(s: Record<string, unknown>): Slide {
   const link = s.link;
   const url = typeof link === 'string' ? link : link && typeof link === 'object' ? String((link as { url?: unknown }).url ?? '') : '';
+  const showcase = (Array.isArray(s.showcase) ? s.showcase : [])
+    .map((x) => (typeof x === 'string' ? x : x && typeof x === 'object' ? String((x as { url?: unknown }).url ?? '') : ''))
+    .filter(Boolean);
   return {
     image: String(s.image ?? ''), headline: String(s.headline ?? ''),
-    subtext: String(s.subtext ?? ''), ctaLabel: String(s.ctaLabel ?? ''), link: url,
+    subtext: String(s.subtext ?? ''), ctaLabel: String(s.ctaLabel ?? ''), link: url, showcase,
   };
 }
 function toSlidePayload(s: Slide) {
   return {
     image: s.image, headline: s.headline, subtext: s.subtext, ctaLabel: s.ctaLabel,
     ...(s.link.trim() ? { link: { url: s.link.trim() } } : {}),
+    ...(s.showcase.length ? { showcase: s.showcase } : {}),
   };
 }
 
@@ -111,7 +115,7 @@ function HeroSliderTab() {
   const { item, isLoading, ready } = useSectionItem('hero_slider');
   const [slides, setSlides] = useState<Slide[]>([]);
   const [loaded, setLoaded] = useState(false);
-  const [pickFor, setPickFor] = useState<number | null>(null);
+  const [pickFor, setPickFor] = useState<{ i: number; field: 'image' | 'showcase' } | null>(null);
   const [error, setError] = useState<unknown>(null);
 
   useEffect(() => {
@@ -155,7 +159,7 @@ function HeroSliderTab() {
               <div>
                 <button
                   type="button"
-                  onClick={() => setPickFor(i)}
+                  onClick={() => setPickFor({ i, field: 'image' })}
                   className="media-thumb group relative flex aspect-[4/3] w-full items-center justify-center overflow-hidden rounded-md border border-dashed border-stone-300 bg-stone-50 text-stone-400 hover:border-brand-500"
                 >
                   {slide.image ? (
@@ -183,6 +187,33 @@ function HeroSliderTab() {
                   <Input placeholder="Button label (e.g. Shop now)" value={slide.ctaLabel} onChange={(e) => update(i, { ctaLabel: e.target.value })} />
                   <Input placeholder="Link (e.g. /c/laces)" value={slide.link} onChange={(e) => update(i, { link: e.target.value })} />
                 </div>
+                {/* Rotating 3D prism images (fabric + customers wearing it) */}
+                <div className="rounded-md border border-stone-200 bg-stone-50/60 p-2">
+                  <p className="mb-1.5 text-[11px] font-medium text-stone-500">
+                    Showcase — rotating 3D prism (add 3–6: the fabric, then customers wearing it). Leave empty to show the single image above.
+                  </p>
+                  <div className="flex flex-wrap items-center gap-2">
+                    {slide.showcase.map((src, si) => (
+                      <div key={si} className="relative h-14 w-14 overflow-hidden rounded-md border border-stone-200">
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img src={src} alt="" className="h-full w-full object-cover" />
+                        <button
+                          type="button"
+                          aria-label="Remove image"
+                          onClick={() => update(i, { showcase: slide.showcase.filter((_, x) => x !== si) })}
+                          className="absolute right-0 top-0 flex h-5 w-5 items-center justify-center bg-black/60 text-white hover:bg-black/80"
+                        ><X size={11} /></button>
+                      </div>
+                    ))}
+                    {slide.showcase.length < 6 && (
+                      <button
+                        type="button"
+                        onClick={() => setPickFor({ i, field: 'showcase' })}
+                        className="flex h-14 w-14 items-center justify-center rounded-md border border-dashed border-stone-300 text-stone-400 hover:border-brand-500"
+                      ><Plus size={16} /></button>
+                    )}
+                  </div>
+                </div>
               </div>
             </div>
           ))}
@@ -201,7 +232,11 @@ function HeroSliderTab() {
       {pickFor !== null && (
         <MediaPickerDialog
           onClose={() => setPickFor(null)}
-          onPick={(url) => { update(pickFor, { image: url }); setPickFor(null); }}
+          onPick={(url) => {
+            if (pickFor.field === 'image') update(pickFor.i, { image: url });
+            else update(pickFor.i, { showcase: [...slides[pickFor.i].showcase, url] });
+            setPickFor(null);
+          }}
         />
       )}
     </div>
@@ -344,28 +379,30 @@ function MediaPickerDialog({ onPick, onClose }: { onPick: (url: string) => void;
   const queryClient = useQueryClient();
   const [q, setQ] = useState('');
   const [error, setError] = useState<unknown>(null);
+  const [uploading, setUploading] = useState(false);
   const { data, isFetching } = useQuery({
     queryKey: ['media', q],
     queryFn: () => api.get<{ rows: { id: string; url: string; filename: string }[] }>(`/content/media?q=${encodeURIComponent(q)}`),
   });
   async function upload(files: FileList | null) {
     if (!files?.length) return;
+    setUploading(true);
     try {
       for (const file of Array.from(files)) {
         const form = new FormData();
         form.append('file', file);
-        await api.postForm('/content/media', form);
+        await api.uploadMedia(form);
       }
       queryClient.invalidateQueries({ queryKey: ['media'] });
-    } catch (e) { setError(e); }
+    } catch (e) { setError(e); } finally { setUploading(false); }
   }
   return (
     <Dialog open onClose={onClose} title="Choose an image" wide>
       <div className="flex flex-wrap items-center gap-2">
         <Input placeholder="Search filename…" value={q} onChange={(e) => setQ(e.target.value)} className="max-w-xs" />
-        <label className="inline-flex cursor-pointer items-center gap-1.5 rounded-md bg-brand-600 px-4 py-2 text-sm font-medium text-white hover:bg-brand-700">
-          <Upload size={15} /> Upload
-          <input type="file" accept="image/jpeg,image/png,image/webp" multiple className="hidden" onChange={(e) => upload(e.target.files)} />
+        <label className={`inline-flex items-center gap-1.5 rounded-md bg-brand-600 px-4 py-2 text-sm font-medium text-white hover:bg-brand-700 ${uploading ? 'pointer-events-none opacity-60' : 'cursor-pointer'}`}>
+          {uploading ? <Loader2 size={15} className="animate-spin" /> : <Upload size={15} />} {uploading ? 'Uploading…' : 'Upload'}
+          <input type="file" accept="image/jpeg,image/png,image/webp" multiple disabled={uploading} className="hidden" onChange={(e) => upload(e.target.files)} />
         </label>
       </div>
       <ErrorNote error={error} />
@@ -451,6 +488,7 @@ function MediaTab() {
   const queryClient = useQueryClient();
   const [q, setQ] = useState('');
   const [error, setError] = useState<unknown>(null);
+  const [uploading, setUploading] = useState(false);
   const { data, isLoading } = useQuery({
     queryKey: ['media', q],
     queryFn: () => api.get<{ rows: { id: string; url: string; filename: string; width: number | null; height: number | null; _count: { usages: number }; renditions: { width: number }[] }[] }>(`/content/media?q=${encodeURIComponent(q)}`),
@@ -458,14 +496,15 @@ function MediaTab() {
 
   async function upload(files: FileList | null) {
     if (!files?.length) return;
+    setUploading(true);
     try {
       for (const file of Array.from(files)) {
         const form = new FormData();
         form.append('file', file);
-        await api.postForm('/content/media', form);
+        await api.uploadMedia(form);
       }
       queryClient.invalidateQueries({ queryKey: ['media'] });
-    } catch (e) { setError(e); }
+    } catch (e) { setError(e); } finally { setUploading(false); }
   }
 
   if (isLoading) return <Spinner />;
@@ -473,9 +512,9 @@ function MediaTab() {
     <div className="space-y-3">
       <div className="flex flex-wrap items-center gap-2">
         <Input placeholder="Search filename…" value={q} onChange={(e) => setQ(e.target.value)} className="max-w-xs" />
-        <label className="inline-flex cursor-pointer items-center gap-1.5 rounded-md bg-brand-600 px-4 py-2 text-sm font-medium text-white hover:bg-brand-700">
-          <Upload size={15} /> Upload
-          <input type="file" accept="image/jpeg,image/png,image/webp" multiple className="hidden" onChange={(e) => upload(e.target.files)} />
+        <label className={`inline-flex items-center gap-1.5 rounded-md bg-brand-600 px-4 py-2 text-sm font-medium text-white hover:bg-brand-700 ${uploading ? 'pointer-events-none opacity-60' : 'cursor-pointer'}`}>
+          {uploading ? <Loader2 size={15} className="animate-spin" /> : <Upload size={15} />} {uploading ? 'Uploading…' : 'Upload'}
+          <input type="file" accept="image/jpeg,image/png,image/webp" multiple disabled={uploading} className="hidden" onChange={(e) => upload(e.target.files)} />
         </label>
       </div>
       <ErrorNote error={error} />

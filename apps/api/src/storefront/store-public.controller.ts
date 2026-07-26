@@ -124,7 +124,7 @@ export class StorePublicController {
       }),
       this.settings.getMany([
         'store.name', 'store.phone', 'store.whatsapp', 'store.email', 'store.address', 'store.social',
-        'notifications.whatsapp_chat', 'mim.enabled', 'homepage.fabrics_count',
+        'notifications.whatsapp_chat', 'mim.enabled', 'homepage.fabrics_count', 'storefront.show_ratings',
       ]),
     ]);
     // POD promise renders only while POD is enabled somewhere (Homepage §3.7).
@@ -140,6 +140,7 @@ export class StorePublicController {
         social: store['store.social'],
       },
       mimEnabled: store['mim.enabled'] !== false,
+      ratingsEnabled: store['storefront.show_ratings'] !== false,
       homepage: { fabricsCount: Number(store['homepage.fabrics_count'] ?? 1000) || 1000 },
       podAvailable: podZones > 0,
       announcement: announcement ? { message: (announcement.fields as { message?: string }).message, link: (announcement.fields as { link?: { url?: string } }).link?.url ?? null } : null,

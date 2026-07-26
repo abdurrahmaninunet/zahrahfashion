@@ -818,7 +818,7 @@ function MediaTab({ product, onSaved, setError }: { product: ProductDetail; onSa
         const form = new FormData();
         form.append('file', file);
         form.append('baseAlt', product.name);
-        const asset = await api.postForm<{ url: string }>('/content/media', form);
+        const asset = await api.uploadMedia<{ url: string }>(form);
         current.push({ url: asset.url, altText: product.name, sortOrder: current.length });
       }
       await api.put(`/products/${product.id}/media`, { media: current });

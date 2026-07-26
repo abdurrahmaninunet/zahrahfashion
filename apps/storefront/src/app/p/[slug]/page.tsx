@@ -85,7 +85,7 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
       </div>
 
       {/* Below the fold: ratings & reviews */}
-      <Reviews productId={product!.id} slug={product!.slug} />
+      <Reviews productId={product!.id} slug={product!.slug} ratingsEnabled={product!.ratingsEnabled} />
 
       {/* Social proof: products co-saved in customers' wishlists */}
       <AlsoLiked productId={product!.id} />

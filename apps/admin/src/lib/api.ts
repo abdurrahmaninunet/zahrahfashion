@@ -32,7 +32,13 @@ async function request<T>(method: string, path: string, body?: unknown, isForm =
     throw new ApiError(401, { message: 'Session expired' });
   }
   const text = await res.text();
-  const data = text ? JSON.parse(text) : null;
+  let data: unknown = null;
+  if (text) {
+    try { data = JSON.parse(text); }
+    // Non-JSON body (e.g. a proxy/server "Internal Server Error" or "Payload Too Large")
+    // — surface it as a readable message instead of crashing on JSON.parse.
+    catch { data = { message: text.trim().slice(0, 200) }; }
+  }
   if (!res.ok) throw new ApiError(res.status, data);
   return data as T;
 }
@@ -43,4 +49,14 @@ export const api = {
   put: <T>(path: string, body?: unknown) => request<T>('PUT', path, body),
   del: <T>(path: string) => request<T>('DELETE', path),
   postForm: <T>(path: string, form: FormData) => request<T>('POST', path, form, true),
+  /** Media uploads go through /media-upload (a Route Handler), NOT the /api
+   *  rewrite proxy, which 500s on large (multi-MB / 8K) request bodies. */
+  uploadMedia: async <T>(form: FormData): Promise<T> => {
+    const res = await fetch('/media-upload', { method: 'POST', body: form, credentials: 'include' });
+    const text = await res.text();
+    let data: unknown = null;
+    if (text) { try { data = JSON.parse(text); } catch { data = { message: text.trim().slice(0, 200) }; } }
+    if (!res.ok) throw new ApiError(res.status, data);
+    return data as T;
+  },
 };

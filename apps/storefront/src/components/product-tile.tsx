@@ -167,7 +167,9 @@ export function ProductTile({ item }: { item: ProductTileData }) {
           {item.name}
         </Link>
 
-        {/* Star rating — real reviews only */}
+        {/* Star rating — only when there are real reviews. Also hides when ratings
+            are turned off globally (the rating comes back null → hasReviews false). */}
+        {hasReviews && (
         <div className="mt-1 flex items-center gap-1">
           <span
             className="flex items-center"
@@ -196,6 +198,7 @@ export function ProductTile({ item }: { item: ProductTileData }) {
             <span className="text-[11px] text-stone-400">No ratings</span>
           )}
         </div>
+        )}
 
         {/* Fixed two-line price block (price, then was-price + discount on a
             reserved line) so every card is the same height. */}

@@ -5,6 +5,7 @@ import { DiscountsService } from '../discounts/discounts.service';
 import { ProductsService } from '../catalog/products.service';
 import { ReviewsService } from '../reviews/reviews.service';
 import { AnkoService } from '../anko/anko.service';
+import { SettingsService } from '../settings/settings.service';
 
 /**
  * Public catalog surface (Storefront FR-SF-CAT). All money is kobo; the
@@ -18,7 +19,14 @@ export class StoreCatalogService {
     private products: ProductsService,
     private reviews: ReviewsService,
     private anko: AnkoService,
+    private settings: SettingsService,
   ) {}
+
+  /** Global toggle (admin Settings → Storefront) — hide star ratings everywhere. */
+  private async ratingsOn(): Promise<boolean> {
+    const s = await this.settings.getMany(['storefront.show_ratings']);
+    return s['storefront.show_ratings'] !== false;
+  }
 
   /** S-D-01: urgency threshold — fabrics (fractional categories) 10, others 5. */
   private urgencyThreshold(fractional: boolean): number {
@@ -33,7 +41,40 @@ export class StoreCatalogService {
       orderBy: [{ sortOrder: 'asc' }, { name: 'asc' }],
       select: { id: true, name: true, slug: true, parentId: true, image: true },
     });
-    return categories;
+
+    // Only show categories that actually have a *shoppable* product — a standard
+    // product with an active, in-stock variant, or any active bundle — matching
+    // exactly what the category page lists (it skips sold-out / variant-less
+    // products). Roll the result up so a parent shows if any descendant qualifies.
+    const rows = await this.prisma.$queryRaw<{ categoryId: string }[]>`
+      SELECT DISTINCT p.category_id AS "categoryId"
+      FROM products p
+      WHERE p.status = 'active' AND p.visibility = 'visible'
+        -- exclude MIM & Lefe products: the main-shop menu/PLP never show them
+        AND COALESCE(p.flags->>'mim', '') <> 'true'
+        AND COALESCE(p.flags->>'lefe', '') <> 'true'
+        AND (
+          p.type <> 'standard'
+          OR EXISTS (
+            SELECT 1 FROM variants v
+            JOIN stock_levels s ON s.variant_id = v.id
+            WHERE v.product_id = p.id AND v.status = 'active'
+            GROUP BY v.id HAVING SUM(s.on_hand - s.reserved) > 0
+          )
+        )`;
+    const nonEmpty = new Set(rows.map((r) => r.categoryId));
+    const byId = new Map(categories.map((c) => [c.id, c]));
+    const keep = new Set<string>();
+    for (const cat of categories) {
+      if (!nonEmpty.has(cat.id)) continue;
+      // mark this category and all of its ancestors as non-empty
+      let cur: (typeof categories)[number] | undefined = cat;
+      while (cur && !keep.has(cur.id)) {
+        keep.add(cur.id);
+        cur = cur.parentId ? byId.get(cur.parentId) : undefined;
+      }
+    }
+    return categories.filter((c) => keep.has(c.id));
   }
 
   /** Slugs + timestamps for the storefront sitemap.xml (SEO). */
@@ -82,7 +123,7 @@ export class StoreCatalogService {
     const allVariants = products.flatMap((p) => p.variants.filter((v) => v.status === 'active'));
     const availability = await this.availabilityByVariant(allVariants.map((v) => v.id));
     // Real review ratings for every card (products with no reviews are absent).
-    const ratings = await this.reviews.summaryMany(products.map((p) => p.id));
+    const ratings = (await this.ratingsOn()) ? await this.reviews.summaryMany(products.map((p) => p.id)) : new Map();
     const display = await this.discounts.priceForDisplay(
       allVariants.map((v) => {
         const p = products.find((x) => x.id === v.productId)!;
@@ -416,7 +457,8 @@ export class StoreCatalogService {
       ...customDetails,
       ...(occasions ? [{ name: 'Occasions', value: occasions }] : []),
     ];
-    const rating = await this.reviews.summary(p.id);
+    const showRatings = await this.ratingsOn();
+    const rating = showRatings ? await this.reviews.summary(p.id) : null;
 
     if (p.type !== 'standard') {
       const bundle = await this.products.bundleAvailability(p.id);
@@ -448,6 +490,7 @@ export class StoreCatalogService {
         selectors: [],
         bulkEligible: false,
         rating,
+        ratingsEnabled: showRatings,
       };
     }
 
@@ -567,6 +610,7 @@ export class StoreCatalogService {
       bulkEligible: !wholeItem && sellFormats.length === 0 && p.category.fractionalAllowed,
       bundle: null,
       rating,
+      ratingsEnabled: showRatings,
     };
   }
 

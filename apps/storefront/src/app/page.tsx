@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { BadgeCheck, Handshake, Headphones, Layers, ShieldCheck, Sparkles, Truck } from 'lucide-react';
 import { serverApi } from '@/lib/api';
 import { ProductCardData, ProductRail } from '@/components/product-card';
 import { HeroSlider } from '@/components/hero-slider';
@@ -69,17 +70,18 @@ export default async function HomePage() {
   return (
     <div>
       {!hasHero && <DefaultHero categories={context?.categories ?? []} />}
-      {!hasHero && <><TrustBar /><StatBand count={context?.homepage?.fabricsCount} /><PartnerCTA /></>}
+      {!hasHero && <TrustSection count={context?.homepage?.fabricsCount} />}
       {sections.map((section, i) => (
         <div key={section.id}>
           <SectionRenderer section={section} first={i === 0} context={context} />
           {i === 0 && (
             <>
-              {hasHero && <><TrustBar /><StatBand count={context?.homepage?.fabricsCount} /><PartnerCTA /></>}
+              {hasHero && <TrustSection count={context?.homepage?.fabricsCount} />}
               {todaysDeals}
               <OwambeEdit categories={context?.categories ?? []} mimEnabled={context?.mimEnabled ?? true} mimProducts={mimFeatured} />
               <MoreToLove />
-              <WhyUs />
+              <WhyBuyFromUs />
+              <PartnerCTA />
             </>
           )}
         </div>
@@ -89,37 +91,64 @@ export default async function HomePage() {
           {todaysDeals}
           <OwambeEdit categories={context?.categories ?? []} mimProducts={mimFeatured} />
           <MoreToLove />
-          <WhyUs />
+          <WhyBuyFromUs />
+          <PartnerCTA />
         </>
       )}
     </div>
   );
 }
 
-/** Brand positioning section — why shop with us. */
-function WhyUs() {
+/** "Why buy from us" — scannable icon reasons (replaces the plain paragraph). */
+function WhyBuyFromUs() {
+  const reasons = [
+    { icon: Sparkles, text: 'Carefully Curated Collections' },
+    { icon: BadgeCheck, text: 'Authentic Premium Fabrics' },
+    { icon: Headphones, text: 'Personal Shopping Assistance' },
+    { icon: Truck, text: 'Nationwide Delivery' },
+    { icon: ShieldCheck, text: 'Trusted by Families Across Abuja' },
+    { icon: Handshake, text: 'Growing Reseller Network' },
+  ];
   return (
-    <section className="mx-auto max-w-[1905px] px-2.5 py-14 text-center lg:px-[8rem]">
-      <h2 className="font-display text-2xl font-bold text-stone-900 md:text-4xl">Why ZAHRA FASHION HUB LIMITED?</h2>
-      <p className="mx-auto mt-4 max-w-3xl text-sm leading-relaxed text-stone-600 md:text-lg">
-        Every collection is carefully selected to combine quality, elegance and timeless beauty. Whether you are
-        preparing for a wedding, celebration, Eid, corporate event or everyday sophistication, our mission is to
-        help you define your style with confidence.
+    <section className="mx-auto max-w-[1905px] px-2.5 py-14 lg:px-[8rem]">
+      <h2 className="text-center font-display text-2xl font-bold text-stone-900 md:text-4xl">Why Buy From Us?</h2>
+      <p className="mx-auto mt-3 max-w-2xl text-center text-sm leading-relaxed text-stone-600 md:text-base">
+        Every collection is chosen to combine quality, elegance and timeless beauty — for weddings, celebrations,
+        Eid, corporate events or everyday style.
       </p>
+      <div className="mx-auto mt-8 grid max-w-4xl grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-3">
+        {reasons.map(({ icon: Icon, text }) => (
+          <div key={text} className="flex items-center gap-3 rounded-xl border border-stone-200 bg-white px-4 py-3.5">
+            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#faf5e6] text-[#8a6d1f]"><Icon size={18} strokeWidth={1.7} /></span>
+            <span className="text-sm font-medium text-stone-800">{text}</span>
+          </div>
+        ))}
+      </div>
     </section>
   );
 }
 
-/** Social-proof statistic — reinforces scale. The number is editable in
- *  admin Settings → Storefront (homepage.fabrics_count). */
-function StatBand({ count }: { count?: number }) {
+/** Trust section under the hero — key reasons to buy, scannable with icons.
+ *  The fabric count is admin-editable (Settings → Storefront, homepage.fabrics_count). */
+function TrustSection({ count }: { count?: number }) {
   const n = (count && count > 0 ? count : 1000).toLocaleString('en-NG');
+  const items = [
+    { icon: Layers, title: `${n}+ Premium Fabrics`, sub: 'Curated for every occasion' },
+    { icon: Truck, title: 'Nationwide Delivery', sub: 'To your door across Nigeria' },
+    { icon: Headphones, title: 'Personal Shopping Assistance', sub: 'Guidance whenever you need it' },
+    { icon: ShieldCheck, title: 'Trusted by Families Across Abuja', sub: 'A name our community relies on' },
+  ];
   return (
-    <section className="mx-auto max-w-[1905px] px-2.5 py-12 text-center lg:px-[8rem]">
-      <p className="font-display text-3xl font-bold text-stone-900 md:text-4xl">
-        Over <span className="text-[#c9a227]">{n}</span> premium fabrics
-      </p>
-      <p className="mx-auto mt-2 max-w-md text-stone-500 md:text-lg">carefully curated for every occasion.</p>
+    <section className="mx-auto max-w-[1905px] px-2.5 py-12 lg:px-[8rem]">
+      <div className="grid grid-cols-2 gap-4 md:grid-cols-4 md:gap-6">
+        {items.map(({ icon: Icon, title, sub }) => (
+          <div key={title} className="flex flex-col items-center rounded-xl border border-stone-200 bg-white px-4 py-6 text-center">
+            <span className="flex h-12 w-12 items-center justify-center rounded-full bg-[#faf5e6] text-[#8a6d1f]"><Icon size={22} strokeWidth={1.6} /></span>
+            <p className="mt-3 font-display text-base font-bold text-stone-900 md:text-lg">{title}</p>
+            <p className="mt-1 text-xs text-stone-500 md:text-sm">{sub}</p>
+          </div>
+        ))}
+      </div>
     </section>
   );
 }
@@ -145,29 +174,6 @@ function PartnerCTA() {
         </Link>
       </div>
     </section>
-  );
-}
-
-/** Trust indicators strip — sits directly below the hero to establish credibility. */
-function TrustBar() {
-  const items = [
-    'Premium Quality Fabrics',
-    'Carefully Curated Collections',
-    'Trusted by Families Across Abuja',
-    'Nationwide Delivery',
-    'Personal Shopping Experience',
-    'Growing Reseller Network',
-  ];
-  return (
-    <div className="bg-white shadow-[0_2px_6px_rgba(0,0,0,0.05)]">
-      <div className="mx-auto flex max-w-[1905px] flex-wrap items-center justify-center gap-x-7 gap-y-2 px-2.5 py-3.5 lg:px-[8rem]">
-        {items.map((t) => (
-          <span key={t} className="flex items-center gap-1.5 whitespace-nowrap text-[13px] font-medium text-stone-700">
-            <span className="font-bold text-emerald-600">✓</span> {t}
-          </span>
-        ))}
-      </div>
-    </div>
   );
 }
 

@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useEffect, useRef, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { ChevronRight, ClipboardList, Gift, Heart, Menu, Search, ShoppingCart, Ticket, User, Wallet, X } from 'lucide-react';
+import { ChevronRight, ClipboardList, Gift, Heart, Menu, Search, ShieldCheck, ShoppingCart, Ticket, User, Wallet, X } from 'lucide-react';
 import { useCart } from '@/lib/cart';
 import { whatsappLink } from '@/lib/format';
 import { api } from '@/lib/api';
@@ -127,9 +127,8 @@ export function Header({ context }: { context: StoreContext }) {
             </button>
             <Link href="/" className="flex items-center gap-2">
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src="/logo.svg" alt="Zahrah Fashion Hub" className="h-8 w-8 shrink-0 sm:h-9 sm:w-9" />
-              {/* Wordmark hides on phones (logo only); the mobile drawer keeps its own logo + name. */}
-              <span className="hidden font-display whitespace-nowrap text-[18px] font-bold md:inline sm:text-[24px]">
+              <img src="/logo.png" alt="Zahrah Fashion Hub" className="h-9 w-auto shrink-0" />
+              <span className="font-display whitespace-nowrap text-[18px] font-bold sm:text-[24px]">
                 {context.store.name || 'Zahrah Fashion Hub'}
               </span>
             </Link>
@@ -376,7 +375,7 @@ export function Header({ context }: { context: StoreContext }) {
             <div className="mb-4 flex items-center justify-between">
               <span className="flex items-center gap-2 font-display text-lg font-bold">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src="/logo.svg" alt="" aria-hidden="true" className="h-7 w-7" />
+                <img src="/logo.png" alt="" aria-hidden="true" className="h-8 w-auto" />
                 {context.store.name || 'Zahrah Fashion Hub'}
               </span>
               <button aria-label="Close menu" className="cursor-pointer" onClick={() => setMenuOpen(false)}><X size={20} /></button>
@@ -512,6 +511,9 @@ export function Footer({ context }: { context: StoreContext }) {
         <p className="mt-3 max-w-md text-sm text-stone-300">
           Style Defined. Premium Fabrics for Life&apos;s Finest Moments.
         </p>
+        <div className="mt-4 inline-flex items-center gap-2 rounded-full border border-stone-700 px-3.5 py-1.5 text-xs font-medium text-stone-200">
+          <ShieldCheck size={14} className="text-[#c9a227]" /> Secure Payments · Paystack
+        </div>
       </div>
       <div className="mx-auto grid max-w-[1905px] gap-8 px-4 lg:px-[8rem] py-10 sm:grid-cols-2 lg:grid-cols-4">
         <div>

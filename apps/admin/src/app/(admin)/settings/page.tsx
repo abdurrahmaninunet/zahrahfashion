@@ -83,7 +83,7 @@ function LocationDialog({ location, onClose }: { location: StoreLocation | null;
     try {
       const fd = new FormData();
       fd.append('file', files[0]);
-      const asset = await api.postForm<{ url: string }>('/content/media', fd);
+      const asset = await api.uploadMedia<{ url: string }>(fd);
       setForm((f) => ({ ...f, imageUrl: asset.url }));
     } catch (e) { setError(e); } finally { setUploading(false); }
   }
