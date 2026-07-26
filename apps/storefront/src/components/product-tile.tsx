@@ -59,9 +59,6 @@ export function ProductTile({ item }: { item: ProductTileData }) {
   const off = discounted
     ? Math.round(((item.compareAt! - item.price) / item.compareAt!) * 100)
     : 0;
-  // Show "Save ₦X" whenever there's a crossed-out price (or an explicit savings).
-  const savings =
-    item.savings ?? (discounted ? item.compareAt! - item.price : 0);
   // Real ratings only — no reviews yet shows an honest "No ratings" state.
   const hasReviews = (item.reviews ?? 0) > 0;
   const rating = item.rating ?? 0;
@@ -200,40 +197,19 @@ export function ProductTile({ item }: { item: ProductTileData }) {
         </div>
         )}
 
-        {/* Fixed two-line price block (price, then was-price + discount on a
-            reserved line) so every card is the same height. */}
-        <div className="mt-1">
-          <div className="tabular text-base font-bold text-stone-900">
-            {naira(item.price)}
-          </div>
-          <div className="flex min-h-[1rem] items-center gap-1.5">
-            {item.compareAt != null && item.compareAt > item.price && (
-              <span className="text-[11px] text-stone-400 line-through">
-                {naira(item.compareAt)}
-              </span>
-            )}
-            {off > 0 && (
-              <span className="text-[11px] font-bold text-[#c02b2b]">
-                −{off}%
-              </span>
-            )}
-          </div>
-        </div>
-
-        {/* Reserved slot for savings / low-stock lines so all cards stay the
-            same height whether or not these are present. */}
-        <div className="mt-0.5 min-h-[2rem]">
-          {savings > 0 && (
-            <p className="text-[11px] font-medium leading-4 text-[#c02b2b]">
-              Save {naira(savings)}
-            </p>
+        {/* Price — current, was-price and discount all on one line */}
+        <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-0.5">
+          <span className="tabular text-base font-bold text-stone-900">{naira(item.price)}</span>
+          {item.compareAt != null && item.compareAt > item.price && (
+            <span className="tabular text-[11px] text-stone-400 line-through">{naira(item.compareAt)}</span>
           )}
-          {item.onlyLeft != null && (
-            <p className="text-[11px] font-medium leading-4 text-amber-600">
-              Only {item.onlyLeft} left
-            </p>
+          {off > 0 && (
+            <span className="text-[11px] font-bold text-[#c02b2b]">−{off}%</span>
           )}
         </div>
+        {item.onlyLeft != null && (
+          <p className="mt-0.5 text-[11px] font-medium text-amber-600">Only {item.onlyLeft} left</p>
+        )}
 
         {/* Add to cart → quantity stepper once in the cart (Amazon-style).
             mt-auto keeps it bottom-aligned across all cards. */}
